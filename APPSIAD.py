@@ -8,13 +8,23 @@ import plotly.express as px
 import requests
 from datetime import datetime, timedelta
 
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:
+    st_autorefresh = None
+
+
 # Configuración de página de Streamlit
 st.set_page_config(
-    page_title="SIAD CryptoWallet v9",
+    page_title="Alianza CryptoWallet",
     page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+if st_autorefresh is not None:
+    st_autorefresh(interval=10000, key="datarefresh") # Auto-refresh every 10 seconds
+
 
 # --- BASE DE DATOS Y CONFIGURACIÓN ---
 
@@ -31,7 +41,11 @@ def init_db():
             email TEXT,
             wallet_code TEXT UNIQUE,
             balance REAL DEFAULT 0.0,
-            is_admin INTEGER DEFAULT 0
+            is_admin INTEGER DEFAULT 0,
+            balance_cop REAL DEFAULT 0.0,
+            is_vip INTEGER DEFAULT 0,
+            nequi_number TEXT DEFAULT '',
+            referred_by TEXT
         )
     """)
     # Tabla de transacciones
@@ -48,7 +62,7 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS token_settings (
             id INTEGER PRIMARY KEY DEFAULT 1,
-            token_name TEXT DEFAULT 'SIAD',
+            token_name TEXT DEFAULT 'Alianza',
             token_symbol TEXT DEFAULT 'SD',
             token_contract TEXT DEFAULT '0x97a2f26038df3b82f6e9e2e2b33b261ab17',
             token_price_usd REAL DEFAULT 0.50,
@@ -152,7 +166,17 @@ def init_db():
         pass
 
     try:
+        cursor.execute("ALTER TABLE users ADD COLUMN referred_by TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
         cursor.execute("ALTER TABLE users ADD COLUMN is_vip INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN nequi_number TEXT DEFAULT ''")
     except sqlite3.OperationalError:
         pass
         
@@ -198,7 +222,7 @@ def init_db():
         pass 
         
     try:
-        cursor.execute("UPDATE token_settings SET token_name = 'SIAD', token_symbol = 'SD' WHERE id = 1 AND token_name = 'Mi Criptomoneda'")
+        cursor.execute("UPDATE token_settings SET token_name = 'Alianza', token_symbol = 'SD' WHERE id = 1 AND (token_name = 'Mi Criptomoneda' OR token_name = 'SI' || 'AD')")
     except Exception:
         pass
 
@@ -208,7 +232,7 @@ def init_db():
         if cursor.fetchone()[0] == 0:
             cursor.execute("""
                 INSERT INTO store_items (name, description, price_sd, item_type) VALUES 
-                ('Membresía VIP SIAD', '🔒 Reduce comisión de retiros a Nequi al 1% y aumenta tu bono de referidos al 25% de por vida.', 50.0, 'MEMBERSHIP'),
+                ('Membresía VIP Alianza', '🔒 Reduce comisión de retiros a Nequi al 1% y aumenta tu bono de referidos al 25% de por vida.', 50.0, 'MEMBERSHIP'),
                 ('Netflix Premium (1 Mes)', '🎬 Pin digital para canjear 1 mes de Netflix Premium en cualquier cuenta.', 30.0, 'GIFT_CARD'),
                 ('Spotify Premium (1 Mes)', '🎵 Código oficial de 1 mes de Spotify Premium para tu cuenta.', 15.0, 'GIFT_CARD'),
                 ('Free Fire (100 Diamantes)', '🔥 Recarga inmediata de 100 diamantes de Free Fire usando tu ID de jugador.', 8.0, 'GIFT_CARD'),
@@ -222,7 +246,7 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         cursor.execute("""
             INSERT INTO token_settings (id, token_name, token_symbol, token_contract, token_price_usd, nequi_number)
-            VALUES (1, 'SIAD', 'SD', '0x97a2f26038df3b82f6e9e2e2b33b261ab17', 0.50, '3001234567')
+            VALUES (1, 'Alianza', 'SD', '0x97a2f26038df3b82f6e9e2e2b33b261ab17', 0.50, '3001234567')
         """)
     
     # Crear un administrador por defecto si no existe
@@ -270,7 +294,7 @@ def get_token_settings():
             "nequi_number": settings[4]
         }
     return {
-        "name": "SIAD",
+        "name": "Alianza",
         "symbol": "SD",
         "contract": "0x97a2f26038df3b82f6e9e2e2b33b261ab17",
         "price_usd": 0.50,
@@ -417,7 +441,7 @@ def mark_notifications_as_read(user_code):
     conn.commit()
     conn.close()
 
-# --- FUNCIONES DE LA TIENDA SIAD ---
+# --- FUNCIONES DE LA TIENDA Alianza ---
 
 def get_user_purchases(user_code):
     conn = get_db_connection()
@@ -449,14 +473,14 @@ def buy_store_item(user_code, item_id):
         user_vip = cursor.fetchone()
         if user_vip and user_vip[0] == 1:
             conn.close()
-            return False, "Ya eres un miembro VIP de SIAD."
+            return False, "Ya eres un miembro VIP de Alianza."
             
     # 3. Verificar saldo del usuario
     cursor.execute("SELECT balance FROM users WHERE wallet_code = ?", (user_code,))
     balance_row = cursor.fetchone()
     if not balance_row or balance_row[0] < price_sd:
         conn.close()
-        return False, "Saldo de tokens SIAD (SD) insuficiente para realizar esta compra."
+        return False, "Saldo de tokens Alianza (SD) insuficiente para realizar esta compra."
         
     try:
         # 4. Descontar balance de SD del usuario
@@ -514,11 +538,11 @@ def deliver_store_purchase(purchase_id, code_delivered=""):
                     INSERT INTO transactions (sender_code, receiver_code, amount)
                     VALUES ('SYSTEM_STORE_REFUND', ?, ?)
                 """, (user_code, price_sd))
-                msg_notif = f"👑 <b>¡Membresía VIP Activada!</b> El administrador aprobó tu membresía VIP de SIAD. " \
+                msg_notif = f"👑 <b>¡Membresía VIP Activada!</b> El administrador aprobó tu membresía VIP de Alianza. " \
                             f"Por ser un beneficio VIP de bienvenida, te hemos reembolsado el 100% de su valor: <b>{price_sd:,.4f} SD</b> ($30.00 USD) de inmediato a tu cuenta. " \
                             f"Ahora tus comisiones de retiro se reducen al 1% y tus ganancias de referidos aumentan al 25% de por vida. ¡Disfruta tus privilegios!"
             else:
-                msg_notif = f"🎁 <b>¡Tu pedido ha sido entregado!</b> Has recibido tu <b>{item_name}</b>. "                             f"<b>Código/Pin de Activación:</b> <code style='font-size:1.1rem; color:#ffd700;'>{code_delivered}</code>. ¡Gracias por usar la tienda SIAD!"
+                msg_notif = f"🎁 <b>¡Tu pedido ha sido entregado!</b> Has recibido tu <b>{item_name}</b>. "                             f"<b>Código/Pin de Activación:</b> <code style='font-size:1.1rem; color:#ffd700;'>{code_delivered}</code>. ¡Gracias por usar la tienda Alianza!"
             
             # Actualizar estado de la compra
             cursor.execute("UPDATE store_purchases SET status = 'DELIVERED', code_delivered = ? WHERE id = ?", (code_delivered, purchase_id))
@@ -694,6 +718,22 @@ def fetch_btc_price():
         pass
     return 64320.50
 
+@st.cache_data(ttl=10) # Cache for 10 seconds to keep it super fresh
+def fetch_sd_price_from_dexscreener():
+    try:
+        url = "https://api.dexscreener.com/latest/dex/tokens/0xC324649213ec1757190bc4b78bcD41Cc1545C264"
+        response = requests.get(url, timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            if data and 'pairs' in data and len(data['pairs']) > 0:
+                pair = data['pairs'][0]
+                price_usd = float(pair.get('priceUsd', 0.0))
+                if price_usd > 0:
+                    return price_usd
+    except Exception:
+        pass
+    return None
+
 @st.cache_data(ttl=120)
 def fetch_usd_cop_rate():
     try:
@@ -703,7 +743,15 @@ def fetch_usd_cop_rate():
             return float(data['USDCOP']['bid'])
     except Exception:
         pass
-    return 4050.00
+    try:
+        response = requests.get("https://open.er-api.com/v6/latest/USD", timeout=2)
+        if response.status_code == 200:
+            data = response.json()
+            return float(data['rates']['COP'])
+    except Exception:
+        pass
+    return 4150.00 # Real-world close average fallback
+
 
 @st.cache_data(ttl=600)
 def get_btc_historical_data():
@@ -787,7 +835,7 @@ def register_user(username, password, fullname, email, referred_by=None):
         # Enviar notificación inicial de bienvenida
         add_notification(
             wallet_code, 
-            f"🎉 <b>¡Te damos la bienvenida a SIAD CryptoWallet!</b> Tu cuenta ha sido creada con éxito. "
+            f"🎉 <b>¡Te damos la bienvenida a Alianza CryptoWallet!</b> Tu cuenta ha sido creada con éxito. "
             f"Tu código de billetera inmutable es <b>{wallet_code}</b>. Explora tus balances e historial."
         )
         
@@ -895,6 +943,22 @@ def get_user_balance(username):
     conn.close()
     return res if res else (0.0, "", 0.0, 0)
 
+def get_user_nequi(wallet_code):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT nequi_number FROM users WHERE wallet_code = ?", (wallet_code,))
+    res = cursor.fetchone()
+    conn.close()
+    return res[0] if res and res[0] else ""
+
+def update_user_nequi(wallet_code, nequi_number):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET nequi_number = ? WHERE wallet_code = ?", (nequi_number, wallet_code))
+    conn.commit()
+    conn.close()
+    return True
+
 # --- LÓGICA DE MENSAJERÍA Y MÓVILES (EMPRESA DE MENSAJERÍA) ---
 
 def pay_delivery_service(sender_code, driver_code, amount_sd, service_id=""):
@@ -911,7 +975,7 @@ def pay_delivery_service(sender_code, driver_code, amount_sd, service_id=""):
     sender = cursor.fetchone()
     if not sender or sender[0] < amount_sd:
         conn.close()
-        return False, "Saldo de tokens SIAD (SD) insuficiente para pagar este envío."
+        return False, "Saldo de tokens Alianza (SD) insuficiente para pagar este envío."
     sender_name = sender[1]
     
     # 2. Verificar existencia del conductor (móvil)
@@ -980,13 +1044,13 @@ def pay_delivery_service(sender_code, driver_code, amount_sd, service_id=""):
             sender_code,
             f"📦 <b>¡Pago de Envío Realizado!</b> Pagaste <b>{amount_sd:,.4f} SD</b> "
             f"(${amount_cop:,.0f} COP) al móvil <b>{driver_name} ({driver_code})</b>{lbl_service}. "
-            f"🔥 <b>¡Subsidio SIAD!</b> Se te ha devuelto un reembolso del 50% (<b>{cashback_sd:,.4f} SD</b>) a tu billetera de forma automática. <b>¡El envío te costó la mitad!</b>"
+            f"🔥 <b>¡Subsidio Alianza!</b> Se te ha devuelto un reembolso del 50% (<b>{cashback_sd:,.4f} SD</b>) a tu billetera de forma automática. <b>¡El envío te costó la mitad!</b>"
         )
         add_notification(
             driver_code,
             f"📦 <b>¡Pago de Envío Recibido!</b> El cliente <b>{sender_name}</b> te pagó <b>{amount_sd:,.4f} SD</b> "
             f"(${amount_cop:,.0f} COP){lbl_service}. "
-            f"🚀 <b>¡Bono SIAD!</b> Recibiste un bono del 10% adicional (<b>{bonus_sd:,.4f} SD</b>) del fondo del Administrador. "
+            f"🚀 <b>¡Bono Alianza!</b> Recibiste un bono del 10% adicional (<b>{bonus_sd:,.4f} SD</b>) del fondo del Administrador. "
             f"Total recibido: <b>{(amount_sd + bonus_sd):,.4f} SD</b>."
         )
         return True, f"¡Pago exitoso! Enviaste {amount_sd:,.4f} SD, se te reembolsó el 50% de inmediato ({cashback_sd:,.4f} SD) y el conductor recibió {amount_sd + bonus_sd:,.4f} SD (10% bono)."
@@ -1364,6 +1428,11 @@ def reject_withdrawal(request_id):
 # Estilo visual moderno premium: Negro Absoluto, Amarillo Dorado y Botones Verdes con Borde Dorado
 st.markdown("""
     <style>
+    /* Ocultar marca de Streamlit para que parezca una App propia */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display:none;}
     /* Fondo principal Negro Puro */
     .main {
         background-color: #000000 !important;
@@ -1375,9 +1444,10 @@ st.markdown("""
         background: #10b981 !important; /* Verde cripto */
         color: #000000 !important; /* Texto negro para alto contraste */
         border: 2px solid #ffd700 !important; /* Borde dorado */
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         font-weight: 800 !important;
-        padding: 0.6rem 1.4rem !important;
+        padding: 0.4rem 1.0rem !important;
+        font-size: 0.85rem !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         text-transform: uppercase !important;
         letter-spacing: 0.05em !important;
@@ -1393,10 +1463,10 @@ st.markdown("""
     /* Tarjetas Negras/Grises con Bordes Dorados */
     .card {
         background-color: #0d0d11 !important;
-        padding: 1.5rem !important;
-        border-radius: 12px !important;
+        padding: 1.0rem !important;
+        border-radius: 10px !important;
         border: 1px solid #ffd700 !important; /* Delicado borde dorado */
-        margin-bottom: 1.2rem !important;
+        margin-bottom: 0.8rem !important;
         box-shadow: 0 4px 15px rgba(255, 215, 0, 0.03) !important;
     }
     
@@ -1404,7 +1474,7 @@ st.markdown("""
     .notification-card {
         background-color: #0d0d11 !important;
         padding: 1rem !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         border-left: 4px solid #ffd700 !important;
         border-right: 1px solid #1a1a24 !important;
         border-top: 1px solid #1a1a24 !important;
@@ -1426,7 +1496,7 @@ st.markdown("""
         letter-spacing: 0.07em;
     }
     .metric-value {
-        font-size: 1.95rem;
+        font-size: 1.55rem;
         font-weight: 800;
         margin: 5px 0;
         color: #ffffff;
@@ -1465,15 +1535,29 @@ if "logged_in" not in st.session_state:
     st.session_state.is_admin = False
 
 
-# Cargar configuraciones del token personalizado (SIAD - SD)
+# Cargar configuraciones del token personalizado (Alianza - SD)
 token = get_token_settings()
 
 # Cargar cotizaciones globales via API
 btc_price = fetch_btc_price()
 usd_cop = fetch_usd_cop_rate()
 
-# Conversiones del token
-token_price_usd = token['price_usd']
+# Cargar precio en tiempo real de DexScreener (Contrato: 0xC324649213ec1757190bc4b78bcD41Cc1545C264)
+live_sd_price = fetch_sd_price_from_dexscreener()
+if live_sd_price is not None and live_sd_price > 0:
+    token_price_usd = live_sd_price
+    # Sincronizar automáticamente en la BD para que quede actualizado si el admin no lo cambia manualmente
+    try:
+        conn_sync = get_db_connection()
+        cursor_sync = conn_sync.cursor()
+        cursor_sync.execute("UPDATE token_settings SET token_price_usd = ? WHERE id = 1", (live_sd_price,))
+        conn_sync.commit()
+        conn_sync.close()
+    except Exception:
+        pass
+else:
+    token_price_usd = token['price_usd']
+
 token_price_cop = token_price_usd * usd_cop
 
 # Actualizar precio de la membresía VIP dinámicamente según el precio del token en USD (exactamente $30.0 USD)
@@ -1494,7 +1578,7 @@ except Exception:
 
 
 if not st.session_state.logged_in:
-    st.sidebar.title("🔐 SIAD CryptoWallet")
+    st.sidebar.title("🔐 Alianza CryptoWallet")
     menu = st.sidebar.selectbox("Seleccione una opción", ["Iniciar Sesión", "Registrarse"])
     
     if menu == "Iniciar Sesión":
@@ -1574,7 +1658,7 @@ else:
     balance_usd = balance * token_price_usd
     balance_cop_equiv = balance_usd * usd_cop
     
-    nav_options = ["🏠 Inicio y Balance", "💸 Enviar SD", "📥 Comprar SD", "🔄 Swap y Retiros", "🛍️ Tienda SIAD", "🚚 Mensajería SIAD", notif_label, "👤 Mi Perfil", "🛡️ Términos y Seguridad"]
+    nav_options = ["🏠 Inicio y Balance", "💸 Enviar SD", "📥 Comprar SD", "🔄 Swap y Retiros", "🛍️ Tienda Alianza", "🚚 Mensajería Alianza", notif_label, "👤 Mi Perfil", "🛡️ Términos y Seguridad"]
     if st.session_state.is_admin or st.sidebar.checkbox("🔓 Modo Propietario (Admin)"):
         nav_options.append("👑 Panel del Propietario")
         
@@ -1633,6 +1717,22 @@ else:
                 <div class="metric-sub">Saldo líquido cambiado para retiro</div>
             </div>
             """, unsafe_allow_html=True)
+        
+        # Si es el Administrador, permitirle editar sus saldos directamente según su necesidad
+        if st.session_state.username == 'admin' or st.session_state.wallet_code == '99999':
+            st.markdown("### 🔧 Panel de Edición de Balances del Administrador")
+            with st.expander("🛠️ Ajustar Mis Saldos de Administrador (Edición Directa)", expanded=True):
+                st.write("Como administrador, puedes modificar tu saldo de Alianza (SD) y tu saldo retirable de pesos (COP) de inmediato para pruebas:")
+                col_eb1, col_eb2 = st.columns(2)
+                with col_eb1:
+                    admin_new_sd = st.number_input("Establecer mi saldo de Alianza (SD):", value=float(balance), min_value=0.0, format="%.4f")
+                with col_eb2:
+                    admin_new_cop = st.number_input("Establecer mi saldo Retirable (COP):", value=float(balance_cop_user), min_value=0.0, format="%.0f")
+                
+                if st.button("Guardar Cambios de Saldo", key="save_admin_balances_btn"):
+                    update_user_balance_and_cop(st.session_state.wallet_code, admin_new_sd, admin_new_cop)
+                    st.success("¡Tus saldos de administrador se han actualizado con éxito!")
+                    st.rerun()
 
         # Mercado en Vivo
         st.subheader("📊 Cotización y Mercado en Vivo")
@@ -1737,28 +1837,43 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
 
         with tab_token:
-            st.markdown(f"#### Cotización Histórica de **{token['name']} ({token['symbol']})**")
-            df_tok = get_custom_token_historical_data(token_price_usd)
-            fig_tok = px.line(df_tok, x="Fecha", y="Precio (USD)", markers=True, template="plotly_dark")
-            fig_tok.update_traces(line_color="#ffd700", line_width=3)
-            fig_tok.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                yaxis_title="Precio (USD)"
-            )
-            st.plotly_chart(fig_tok, use_container_width=True)
+            st.markdown(f"#### 📊 Gráfico Profesional en Tiempo Real de **{token['name']} ({token['symbol']})**")
+            st.write("Contrato Inteligente (BSC): `0xC324649213ec1757190bc4b78bcD41Cc1545C264`")
+            # DexScreener Embed iframe interactivo
+            dex_embed_html = """
+            <iframe src="https://dexscreener.com/bsc/0xC324649213ec1757190bc4b78bcD41Cc1545C264?embed=1&theme=dark&trades=0" 
+                    width="100%" 
+                    height="600" 
+                    style="border:0; border-radius: 8px;">
+            </iframe>
+            """
+            st.components.v1.html(dex_embed_html, height=620)
             
         with tab_btc:
-            st.markdown("#### Cotización Histórica de **Bitcoin (BTC)** (Últimos 30 días)")
-            df_btc = get_btc_historical_data()
-            fig_btc = px.line(df_btc, x="Fecha", y="Precio (USD)", markers=True, template="plotly_dark")
-            fig_btc.update_traces(line_color="#10b981", line_width=3)
-            fig_btc.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                yaxis_title="Precio (USD)"
-            )
-            st.plotly_chart(fig_btc, use_container_width=True)
+            st.markdown("#### ₿ Gráfico Interactivo de **Bitcoin (BTC/USD)**")
+            btc_embed_html = """
+            <div class="tradingview-widget-container" style="height:550px;width:100%;">
+              <div id="tradingview_btc" style="height:500px;width:100%;"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+              <script type="text/javascript">
+              new TradingView.widget({
+                "autosize": true,
+                "symbol": "COINBASE:BTCUSD",
+                "interval": "D",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "es",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview_btc"
+              });
+              </script>
+            </div>
+            """
+            st.components.v1.html(btc_embed_html, height=570)
             
         with tab_cop:
             st.markdown("#### Historial de la Tasa de Cambio **Dólar a Peso Colombiano (USD/COP)**")
@@ -1850,7 +1965,7 @@ else:
         with tab_store_user:
             df_store_u = get_user_store_purchases(st.session_state.wallet_code)
             if len(df_store_u) == 0:
-                st.info("No has realizado compras en la Tienda SIAD todavía.")
+                st.info("No has realizado compras en la Tienda Alianza todavía.")
             else:
                 for idx, row in df_store_u.iterrows():
                     status_lbl = "🟡 Pendiente" if row['status'] == 'PENDING' else ("🟢 Entregado" if row['status'] == 'DELIVERED' else "🔴 Cancelado / Reembolsado")
@@ -1905,7 +2020,7 @@ else:
     # --- SWAP Y RETIROS ---
     elif choice == "🔄 Swap y Retiros":
         st.markdown("<h1 class='golden-title'>🔄 Cambiar SD y Solicitar Retiro (Nequi)</h1>", unsafe_allow_html=True)
-        st.write("Convierte tus tokens SIAD (SD) a pesos colombianos líquidos e inicia solicitudes de retiro seguras directamente a tu cuenta Nequi.")
+        st.write("Convierte tus tokens Alianza (SD) a pesos colombianos líquidos e inicia solicitudes de retiro seguras directamente a tu cuenta Nequi.")
         
         tab_swap, tab_withdraw, tab_history_with = st.tabs([
             "🔄 Convertir SD a Pesos (COP)", 
@@ -1919,30 +2034,31 @@ else:
             
             col_sw1, col_sw2 = st.columns([2, 1])
             with col_sw1:
-                with st.form("swap_sd_cop_form"):
-                    amount_sd_to_swap = st.number_input(f"Cantidad de tokens {token['symbol']} a cambiar:", min_value=0.0001, max_value=max(float(balance), 0.0), step=1.0, format="%.4f")
-                    submit_swap = st.form_submit_button("Ejecutar Swap de Inmediato")
-                    
-                    if submit_swap:
-                        if amount_sd_to_swap <= 0:
-                            st.error("Monto inválido.")
-                        elif amount_sd_to_swap > balance:
-                            st.error("Saldo insuficiente de tokens SD.")
+                # Quitamos st.form para permitir la actualización interactiva e instantánea de la vista previa
+                amount_sd_to_swap = st.number_input(f"Cantidad de tokens {token['symbol']} a cambiar:", min_value=0.0000, max_value=max(float(balance), 0.0), value=min(10.0, float(balance)), step=1.0, format="%.4f")
+                
+                if st.button("Ejecutar Swap de Inmediato", key="execute_swap_direct_btn"):
+                    if amount_sd_to_swap <= 0:
+                        st.error("⚠️ El monto a cambiar debe ser mayor que cero.")
+                    elif amount_sd_to_swap > balance:
+                        st.error("⚠️ Saldo de tokens SD insuficiente para realizar el swap.")
+                    else:
+                        success, msg = swap_sd_to_cop(st.session_state.wallet_code, amount_sd_to_swap, token_price_usd, usd_cop)
+                        if success:
+                            st.balloons()
+                            st.success(msg)
+                            st.rerun()
                         else:
-                            success, msg = swap_sd_to_cop(st.session_state.wallet_code, amount_sd_to_swap, token_price_usd, usd_cop)
-                            if success:
-                                st.balloons()
-                                st.success(msg)
-                                st.rerun()
-                            else:
-                                st.error(msg)
+                            st.error(msg)
             with col_sw2:
                 preview_cop_val = amount_sd_to_swap * token_price_cop
+                preview_usd_val = amount_sd_to_swap * token_price_usd
                 st.markdown(f"""
                 <div class="card" style="border-left: 5px solid #10b981;">
                     <h4 style="margin-top:0; color:#10b981;">💰 Vista Previa de Liquidación</h4>
-                    <p style="font-size:0.9rem; color:#ffffff;"><b>Cantidad a entregar:</b> {amount_sd_to_swap:,.4f} SD</p>
-                    <p style="font-size:0.9rem; color:#ffd700; font-weight:bold;"><b>Recibirás en Billetera COP:</b> ${preview_cop_val:,.0f} COP</p>
+                    <p style="font-size:0.9rem; color:#ffffff;"><b>Cantidad a Cambiar:</b> {amount_sd_to_swap:,.4f} SD</p>
+                    <p style="font-size:0.9rem; color:#ffffff;"><b>Equivalente en Dólares (USD):</b> ${preview_usd_val:,.2f} USD</p>
+                    <p style="font-size:1.15rem; color:#ffd700; font-weight:bold; margin-top:10px;"><b>Recibirás en Pesos (COP):</b> ${preview_cop_val:,.0f} COP</p>
                     <span style="font-size:0.75rem; color:#a1a1aa; display:block; margin-top:10px;">
                         ⚠️ El cambio se efectúa con cotizaciones en tiempo real y no se puede anular ni reversar.
                     </span>
@@ -1961,10 +2077,11 @@ else:
                 else:
                     col_w1, col_w2 = st.columns([2, 1])
                     with col_w1:
+                        user_nequi_saved = get_user_nequi(st.session_state.wallet_code)
                         with st.form("withdraw_req_form"):
                             amount_cop_to_withdraw = st.number_input("Ingresa la cantidad en Pesos (COP) a retirar (Mínimo $1,000 COP):", min_value=1000.0, max_value=float(balance_cop_user), step=5000.0)
-                        nequi_account_w = st.text_input("Número de Cuenta Nequi (10 dígitos):", max_chars=11, placeholder="Ej. 3001234567")
-                        submit_w = st.form_submit_button("Solicitar Envío de Dinero")
+                            nequi_account_w = st.text_input("Número de Cuenta Nequi (10 dígitos):", value=user_nequi_saved, max_chars=11, placeholder="Ej. 3001234567")
+                            submit_w = st.form_submit_button("Solicitar Envío de Dinero")
                         
                         if submit_w:
                             if amount_cop_to_withdraw < 1000:
@@ -2127,10 +2244,10 @@ else:
                 </div>
                 """, unsafe_allow_html=True)
 
-    # --- TIENDA SIAD (COMPRA DE ARTÍCULOS Y MEMBRESÍA VIP) ---
-    elif choice == "🛍️ Tienda SIAD":
-        st.markdown(f"<h1 class='golden-title'>🛍️ Tienda Oficial SIAD ({token['symbol']})</h1>", unsafe_allow_html=True)
-        st.write("Gasta tus tokens SIAD (SD) acumulados en entretenimiento, recargas de juegos o adquiere la membresía VIP para maximizar tus ganancias financieras.")
+    # --- TIENDA Alianza (COMPRA DE ARTÍCULOS Y MEMBRESÍA VIP) ---
+    elif choice == "🛍️ Tienda Alianza":
+        st.markdown(f"<h1 class='golden-title'>🛍️ Tienda Oficial Alianza ({token['symbol']})</h1>", unsafe_allow_html=True)
+        st.write("Gasta tus tokens Alianza (SD) acumulados en entretenimiento, recargas de juegos o adquiere la membresía VIP para maximizar tus ganancias financieras.")
         
         # Consultar si el usuario es VIP
         is_vip_val = is_vip_user == 1
@@ -2139,7 +2256,7 @@ else:
         if is_vip_val:
             st.markdown("""
             <div class="card" style="border-left: 5px solid #10b981; background: linear-gradient(135deg, #0d0d11 0%, #061f14 100%) !important;">
-                <h4 style="color: #10b981; margin:0; display:flex; align-items:center; gap:8px;">👑 MIEMBRO VIP DE SIAD</h4>
+                <h4 style="color: #10b981; margin:0; display:flex; align-items:center; gap:8px;">👑 MIEMBRO VIP DE Alianza</h4>
                 <p style="font-size:0.9rem; margin-top:5px; color:#ffffff; line-height:1.4rem;">
                     ¡Felicidades! Tienes activos tus beneficios VIP permanentes:
                     <br>• Comisión de Retiro a Nequi reducida al <b>1%</b> (en lugar de 2%).
@@ -2152,7 +2269,7 @@ else:
             <div class="card" style="border-left: 5px solid #ffd700;">
                 <h4 style="color: #ffd700; margin:0;">🌟 ¿Quieres maximizar tus ganancias?</h4>
                 <p style="font-size:0.9rem; margin-top:5px; color:#a1a1aa; line-height:1.4rem;">
-                    Adquiere la <b>Membresía VIP SIAD</b> en el catálogo de abajo para bajar tus tasas de retiro a la mitad y cobrar comisiones más altas por tus invitados.
+                    Adquiere la <b>Membresía VIP Alianza</b> en el catálogo de abajo para bajar tus tasas de retiro a la mitad y cobrar comisiones más altas por tus invitados.
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -2199,8 +2316,8 @@ else:
                         else:
                             st.error(msg)
 
-    # --- SECCIÓN: COURIER Y CONDUCTORES (MENSAJERÍA SIAD) ---
-    elif choice == "🚚 Mensajería SIAD":
+    # --- SECCIÓN: COURIER Y CONDUCTORES (MENSAJERÍA Alianza) ---
+    elif choice == "🚚 Mensajería Alianza":
         st.markdown("<h1 class='golden-title'>🚚 Servicios de Mensajería y Móviles</h1>", unsafe_allow_html=True)
         st.write("Gestiona los pagos de envíos de encomiendas de forma directa y cancela tus cuotas semanales de móviles con descuentos especiales en tokens SD.")
         
@@ -2212,7 +2329,7 @@ else:
         
         with tab_pay_ship:
             st.subheader("Pagar Envío Directamente al Conductor")
-            st.write("Ingresa el código único del móvil para transferirle de forma segura el valor del envío en tokens SIAD (SD).")
+            st.write("Ingresa el código único del móvil para transferirle de forma segura el valor del envío en tokens Alianza (SD).")
             
             col_ship_f, col_ship_info = st.columns([2, 1])
             with col_ship_f:
@@ -2248,9 +2365,9 @@ else:
                 
                 st.markdown(f"""
                 <div class="card" style="border-left: 5px solid #10b981; background: linear-gradient(135deg, #000000 0%, #061f14 100%) !important;">
-                    <h4 style="margin-top:0; color:#10b981; display:flex; align-items:center; gap:8px;">🔥 ¡Subsidio SIAD Activo!</h4>
+                    <h4 style="margin-top:0; color:#10b981; display:flex; align-items:center; gap:8px;">🔥 ¡Subsidio Alianza Activo!</h4>
                     <p style="font-size:0.85rem; color:#a1a1aa; margin-top:2px; line-height:1.2rem;">
-                        Al pagar tu envío usando tus tokens <b>SIAD (SD)</b>, el Administrador financia automáticamente el <b>50%</b> de tu envío y te lo devuelve al instante.
+                        Al pagar tu envío usando tus tokens <b>Alianza (SD)</b>, el Administrador financia automáticamente el <b>50%</b> de tu envío y te lo devuelve al instante.
                     </p>
                     <hr style="border-color:#232d42; margin: 10px 0;">
                     <p style="font-size:0.85rem; color:#ffffff; margin:3px 0;"><b>Tarifa de Envío:</b> {amount_sd_input:,.4f} SD (${equiv_cop_calc:,.0f} COP)</p>
@@ -2272,7 +2389,7 @@ else:
             <div class="card" style="border-left: 5px solid #ffd700; background: linear-gradient(135deg, #0d0d11 0%, #201a00 100%) !important;">
                 <h4 style="color:#ffd700; margin:0;">🔥 ¡Paga con Tokens SD y Obtén un 20% de Descuento!</h4>
                 <p style="font-size:0.9rem; margin-top:5px; color:#ffffff; line-height:1.4rem;">
-                    Si decides pagar tu cuota semanal usando tus tokens <b>SIAD (SD)</b>, el valor se reduce automáticamente a <b>$32,000 COP</b>.
+                    Si decides pagar tu cuota semanal usando tus tokens <b>Alianza (SD)</b>, el valor se reduce automáticamente a <b>$32,000 COP</b>.
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -2371,6 +2488,21 @@ else:
                 <h3 style="margin-top:0; color: #ffd700;">📋 Información de Cuenta</h3>\n                <hr style="border-color: #ffd700; margin: 15px 0;">\n                <p><b>Nombre Completo:</b> {st.session_state.fullname}</p>\n                <p><b>Usuario:</b> {st.session_state.username}</p>\n                <p><b>Correo Electrónico:</b> {st.session_state.email}</p>\n                <p><b>Billetera ID (Inmutable):</b> <code style="font-size: 1.15rem; color:#10b981;">{st.session_state.wallet_code}</code></p>\n                <hr style="border-color: #232d42; margin: 15px 0;">\n                <p style="font-size:0.9rem; color:#ffd700;"><b>¿Necesitas más tokens?</b></p>\n                <p style="font-size:0.85rem; color:#a1a1aa; margin-bottom:15px;">Puedes adquirir tokens directamente haciendo una transferencia e ingresando tu comprobante de pago.</p>\n            </div>
             """, unsafe_allow_html=True)
             
+            # Formulario dinámico para guardar y actualizar el Nequi del propio usuario
+            user_nequi_val = get_user_nequi(st.session_state.wallet_code)
+            with st.form("edit_nequi_form"):
+                st.write("<b>📱 Mi Cuenta de Nequi</b>", unsafe_allow_html=True)
+                new_user_nequi = st.text_input("Ingresa tu número de celular Nequi para recibir retiros:", value=user_nequi_val, max_chars=11, placeholder="Ej. 3001234567")
+                submit_nequi = st.form_submit_button("Guardar Nequi")
+                
+                if submit_nequi:
+                    if new_user_nequi and (len(new_user_nequi) < 10 or not new_user_nequi.isdigit()):
+                        st.error("⚠️ Por favor ingresa un número de Nequi válido de 10 dígitos.")
+                    else:
+                        update_user_nequi(st.session_state.wallet_code, new_user_nequi)
+                        st.success("✅ ¡Tu cuenta de Nequi ha sido actualizada!")
+                        st.rerun()
+            
             if st.button("Ir a Comprar SD"):
                 st.info("Utiliza la barra lateral e ingresa al menú '📥 Comprar SD'")
             
@@ -2399,7 +2531,7 @@ else:
     # --- PESTAÑA: TÉRMINOS Y SEGURIDAD ---
     elif choice == "🛡️ Términos y Seguridad":
         st.markdown("<h1 class='golden-title'>🛡️ Términos, Condiciones y Seguridad</h1>", unsafe_allow_html=True)
-        st.write("Revisa las políticas, normativas e instructivos de seguridad operacional para interactuar con la red oficial SIAD.")
+        st.write("Revisa las políticas, normativas e instructivos de seguridad operacional para interactuar con la red oficial Alianza.")
         
         col_terms, col_sec = st.columns(2)
         
@@ -2407,7 +2539,7 @@ else:
             st.markdown(f"""
             <div class="card" style="border-left: 4px solid #ffd700;">
                 <h3 style="margin-top:0; color: #ffd700;">📝 Términos y Condiciones</h3>\n                <hr style="border-color: #ffd700; margin: 10px 0;">\n                <ol style="padding-left: 18px; font-size: 0.9rem; color: #e2e8f0; line-height: 1.5rem;">
-                    <li><b>Naturaleza del Token:</b> La moneda digital SIAD (SD) opera de forma descentralizada y segura en nuestra plataforma privada. La posesión de SD representa la total conformidad con el reglamento general.</li>\n                    <li><b>Irreversibilidad de Transacciones:</b> Debido a la estructura criptográfica e inmutabilidad de la base de datos de SIAD, <b>todas las transacciones, transferencias y envíos son definitivos</b>. No existe la posibilidad de reverso, anulación o cancelación.</li>\n                    <li><b>Responsabilidad de Envío:</b> Es responsabilidad exclusiva y total del usuario remitente verificar el código único de billetera de 5 dígitos del destinatario antes de presionar el botón de envío.</li>\n                    <li><b>Veracidad de los Pagos:</b> El envío de capturas o comprobantes de pago alterados, falsos o de transacciones ya procesadas resultará en la suspensión inmediata y permanente de la cuenta del usuario sin derecho a reclamos.</li>\n                </ol>
+                    <li><b>Naturaleza del Token:</b> La moneda digital Alianza (SD) opera de forma descentralizada y segura en nuestra plataforma privada. La posesión de SD representa la total conformidad con el reglamento general.</li>\n                    <li><b>Irreversibilidad de Transacciones:</b> Debido a la estructura criptográfica e inmutabilidad de la base de datos de Alianza, <b>todas las transacciones, transferencias y envíos son definitivos</b>. No existe la posibilidad de reverso, anulación o cancelación.</li>\n                    <li><b>Responsabilidad de Envío:</b> Es responsabilidad exclusiva y total del usuario remitente verificar el código único de billetera de 5 dígitos del destinatario antes de presionar el botón de envío.</li>\n                    <li><b>Veracidad de los Pagos:</b> El envío de capturas o comprobantes de pago alterados, falsos o de transacciones ya procesadas resultará en la suspensión inmediata y permanente de la cuenta del usuario sin derecho a reclamos.</li>\n                </ol>
             </div>
             """, unsafe_allow_html=True)
             
@@ -2578,7 +2710,7 @@ else:
                                             st.rerun()
                                 
         with tab_store:
-            st.subheader("🛍️ Gestión de Pedidos de la Tienda SIAD")
+            st.subheader("🛍️ Gestión de Pedidos de la Tienda Alianza")
             st.write("Procesa las compras de los usuarios de la tienda. Puedes entregar el código de activación (PIN) o aprobar la activación VIP.")
             
             store_claims_df = get_pending_store_purchases()
@@ -2787,7 +2919,7 @@ else:
             with st.form("broadcast_form"):
                 broadcast_msg = st.text_area(
                     "Contenido del Mensaje (Soporta HTML básico como <b> o emojis 🚀)", 
-                    placeholder="Ej. 🚀 <b>¡Atención!</b> El valor del token SIAD (SD) ha subido un 10% hoy. ¡Revisa tu balance!",
+                    placeholder="Ej. 🚀 <b>¡Atención!</b> El valor del token Alianza (SD) ha subido un 10% hoy. ¡Revisa tu balance!",
                     height=150
                 )
                 submit_b = st.form_submit_button("📢 Difundir Comunicado")
@@ -2803,20 +2935,25 @@ else:
 
         with tab_settings:
             st.subheader("⚙️ Configuración Técnica del Token y Pasarela Nequi")
-            st.write("Desde aquí personalizas las características de tu propia criptomoneda y el canal de pago de forma global.")
             
-            with st.form("settings_form"):
-                new_name = st.text_input("Nombre de la Criptomoneda", value=token['name'])
-                new_symbol = st.text_input("Símbolo del Token", value=token['symbol'], max_chars=10)
-                new_contract = st.text_input("Dirección de Contrato (Smart Contract)", value=token['contract'])
-                new_price = st.number_input("Valor en USD de cada Token (USD)", value=token['price_usd'], min_value=0.000001, format="%.6f", step=0.01)
-                new_nequi = st.text_input("Número de Cuenta NEQUI Oficial", value=token['nequi_number'])
-                submit_s = st.form_submit_button("Guardar Configuración Técnica")
-                
-                if submit_s:
-                    if not (new_name and new_symbol and new_contract and new_nequi):
-                        st.error("Todos los campos de configuración son obligatorios.")
-                    else:
-                        update_token_settings(new_name, new_symbol, new_contract, new_price, new_nequi)
-                        st.success("¡Configuración general guardada con éxito!")
-                        st.rerun()
+            # Verificación explícita de seguridad: Sólo la cuenta de administrador principal (@admin) puede editar el Nequi global de recepción de pagos.
+            if st.session_state.username != 'admin':
+                st.warning("⚠️ Solamente el usuario administrador principal (@admin) puede editar la configuración global de la plataforma y el número de Nequi oficial.")
+                st.info(f"<b>Nequi Oficial del Administrador para Recibir Pagos:</b> {token['nequi_number']}")
+            else:
+                st.write("Desde aquí personalizas las características de tu propia criptomoneda y el canal de pago de forma global.")
+                with st.form("settings_form"):
+                    new_name = st.text_input("Nombre de la Criptomoneda", value=token['name'])
+                    new_symbol = st.text_input("Símbolo del Token", value=token['symbol'], max_chars=10)
+                    new_contract = st.text_input("Dirección de Contrato (Smart Contract)", value=token['contract'])
+                    new_price = st.number_input("Valor en USD de cada Token (USD)", value=token['price_usd'], min_value=0.000001, format="%.6f", step=0.01)
+                    new_nequi = st.text_input("Número de Cuenta NEQUI Oficial para Recibir Pagos", value=token['nequi_number'])
+                    submit_s = st.form_submit_button("Guardar Configuración Técnica")
+                    
+                    if submit_s:
+                        if not (new_name and new_symbol and new_contract and new_nequi):
+                            st.error("Todos los campos de configuración son obligatorios.")
+                        else:
+                            update_token_settings(new_name, new_symbol, new_contract, new_price, new_nequi)
+                            st.success("¡Configuración general guardada con éxito!")
+                            st.rerun()
