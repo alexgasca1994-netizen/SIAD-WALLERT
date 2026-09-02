@@ -18,7 +18,7 @@ except ImportError:
 
 # Configuración de página de Streamlit
 st.set_page_config(
-    page_title="Alianza CryptoWallet v29",
+    page_title="Alianza CryptoWallet v31",
     page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -1677,6 +1677,11 @@ st.markdown("""
         border-right: 2px solid #ffd700 !important; /* Línea divisoria dorada */
     }
     
+    /* Evitar la línea amarilla huérfana en el borde de la pantalla cuando el menú se minimiza por completo */
+    section[data-testid="stSidebar"][data-collapsed="true"] {
+        border-right: none !important;
+    }
+    
     /* Input fields estilizados */
     .stTextInput>div>div>input, .stNumberInput>div>div>input {
         background-color: #0d0d11 !important;
@@ -1692,56 +1697,61 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Convertir el menú en una lista de botones táctiles premium e independientes */
+    /* CONVERTIR MENÚ EN CUADROS / TARJETAS TÁCTILES GRANDES Y COMODAS (MOBILE TILES DESIGN) */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label {
-        padding: 14px 16px !important; /* Padding amplio para hacerlo muy cómodo para el dedo */
-        background: linear-gradient(135deg, #0d0d11 0%, #15151c 100%) !important; /* Fondo sutilmente degradado */
-        border: 1px solid #ffd70033 !important; /* Borde con sutil dorado semi-transparente */
-        border-radius: 12px !important; /* Esquinas redondeadas y modernas */
-        width: 100% !important; /* Ancho completo */
+        padding: 20px 16px !important; /* Cuadros mucho más grandes y cómodos para el dedo */
+        min-height: 72px !important; /* Altura ideal de cuadro táctil premium */
+        background: linear-gradient(135deg, #0d0d12 0%, #161622 100%) !important; /* Fondo tipo tarjeta oscura */
+        border: 1.5px solid #ffd70033 !important; /* Delicado borde dorado semi-transparente */
+        border-left: 6px solid #ffd70088 !important; /* Barra lateral izquierda dorada para identificar el cuadro */
+        border-radius: 14px !important; /* Esquinas muy redondeadas tipo iOS/Android Premium */
+        width: 100% !important; /* Cuadro cubre todo el ancho */
         display: flex !important;
-        justify-content: center !important; /* Centrado del texto */
+        justify-content: center !important; /* Centrado absoluto del texto */
         align-items: center !important;
         cursor: pointer !important;
         margin: 0 !important;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.35) !important; /* Sombra tridimensional de botón real */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5) !important; /* Sombra tridimensional de caja física real */
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
-    /* Separación vertical holgada entre cada botón (más espacio para que no haya toques erróneos) */
+    /* Separación amplia entre cuadros independientes (diseño de cuadrícula/bloques aislados) */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] > div {
-        margin-bottom: 16px !important; /* Aumentamos la separación vertical */
+        margin-bottom: 20px !important; /* Amplia separación para un diseño limpio sin toques erróneos */
     }
     
-    /* Efecto al pasar el dedo (Hover/Touch) */
+    /* Efecto Hover/Touch: Elevación del cuadro y brillo de luz */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:hover {
-        border-color: #ffd700 !important; /* Borde dorado brillante */
-        background: linear-gradient(135deg, #15151c 0%, #20202a 100%) !important;
-        box-shadow: 0 6px 15px rgba(255, 215, 0, 0.15) !important;
-        transform: translateY(-2px) !important; /* Efecto de elevación táctil */
+        border-color: #ffd700cc !important; /* Resalte dorado al hover */
+        border-left: 6px solid #ffd700 !important; /* Barra lateral izquierda se ilumina full oro */
+        background: linear-gradient(135deg, #161622 0%, #202030 100%) !important;
+        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.18) !important;
+        transform: translateY(-3px) !important; /* Elevación física del cuadro */
     }
     
-    /* Estilo del texto del botón para máxima legibilidad en celular */
+    /* Texto súper claro, grande e impactante dentro de cada cuadro */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label [data-testid="stMarkdownContainer"] p {
-        font-size: 1.05rem !important; /* Texto un poco más grande y claro */
-        font-weight: 700 !important; /* Más grueso, estilo negrita */
+        font-size: 1.15rem !important; /* Letra más grande para lectura súper cómoda */
+        font-weight: 800 !important; /* Estilo extra grueso de alta visibilidad */
         color: #ffffff !important;
-        text-align: center !important; /* Centrar texto */
+        text-align: center !important; /* Centrado del nombre de sección */
         width: 100% !important;
-        letter-spacing: 0.03em !important;
+        letter-spacing: 0.04em !important;
         margin: 0 !important;
+        text-transform: capitalize !important; /* Formato elegante */
     }
     
-    /* Cuando un botón está SELECCIONADO (Activo) */
+    /* CUANDO EL CUADRO ESTÁ SELECCIONADO (ESTADO ACTIVO PREMIUM) */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) {
-        border-color: #10b981 !important; /* Borde verde brillante activo */
-        background: linear-gradient(135deg, #081a13 0%, #0d3824 100%) !important; /* Degradado verde */
-        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25) !important; /* Glow verde cripto */
+        border-color: #10b981 !important; /* Borde verde brillante de activo */
+        border-left: 8px solid #10b981 !important; /* Barra lateral izquierda se convierte en indicador verde esmeralda brillante */
+        background: linear-gradient(135deg, #092218 0%, #05140e 100%) !important; /* Hermoso degradado verde bosque premium */
+        box-shadow: 0 8px 22px rgba(16, 185, 129, 0.3) !important; /* Brillo verde cripto */
     }
 
-    /* Cambiar el color del texto cuando el botón está seleccionado */
+    /* Color de texto verde neón esmeralda cuando el cuadro está activo */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) [data-testid="stMarkdownContainer"] p {
-        color: #10b981 !important; /* Texto verde brillante */
+        color: #10b981 !important; /* Texto verde esmeralda de sección seleccionada */
     }
 
     </style>
@@ -2067,9 +2077,7 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
 
         with tab_token:
-            st.markdown(f"#### 📊 Gráfico Profesional en Tiempo Real de **{token['name']} ({token['symbol']})**")
-            st.write("Contrato Inteligente (BSC): `0xC324649213ec1757190bc4b78bcD41Cc1545C264`")
-            # DexScreener Embed iframe interactivo
+            # DexScreener Embed iframe interactivo de una, directamente sin textos de información redundantes
             dex_embed_html = """
             <iframe src="https://dexscreener.com/bsc/0xC324649213ec1757190bc4b78bcD41Cc1545C264?embed=1&theme=dark&trades=0" 
                     width="100%" 
