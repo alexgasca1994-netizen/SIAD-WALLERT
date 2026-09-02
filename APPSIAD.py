@@ -1697,61 +1697,81 @@ st.markdown("""
         display: none !important;
     }
 
-    /* CONVERTIR MENÚ EN CUADROS / TARJETAS TÁCTILES GRANDES Y COMODAS (MOBILE TILES DESIGN) */
+    /* CONVERTIR MENÚ EN BOTONES/CUADROS GRANDES DE NAVEGACIÓN (TIPO CERRAR SESIÓN PERO AZUL/DORADO Y EFECTO BLOB) */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] > label {
+        color: #ffd700 !important; /* Título en Amarillo Dorado */
+        font-size: 1.15rem !important;
+        font-weight: 850 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        margin-bottom: 15px !important;
+        display: block !important;
+        text-align: center !important;
+        border-bottom: 2px solid #ffd70033 !important;
+        padding-bottom: 8px !important;
+    }
+
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label {
-        padding: 20px 16px !important; /* Cuadros mucho más grandes y cómodos para el dedo */
-        min-height: 72px !important; /* Altura ideal de cuadro táctil premium */
-        background: linear-gradient(135deg, #0d0d12 0%, #161622 100%) !important; /* Fondo tipo tarjeta oscura */
-        border: 1.5px solid #ffd70033 !important; /* Delicado borde dorado semi-transparente */
-        border-left: 6px solid #ffd70088 !important; /* Barra lateral izquierda dorada para identificar el cuadro */
-        border-radius: 14px !important; /* Esquinas muy redondeadas tipo iOS/Android Premium */
-        width: 100% !important; /* Cuadro cubre todo el ancho */
+        padding: 14px 12px !important; /* Más grandes, amplios y cómodos */
+        min-height: 56px !important; /* Altura ideal de botón táctil premium */
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important; /* Fondo tipo botón azul oscuro/slate */
+        border: 2px solid #ffd70088 !important; /* Borde dorado sólido como el botón de Cerrar Sesión */
+        border-radius: 8px !important; /* Bordes redondeados de botón */
+        width: 100% !important; /* Cubre todo el ancho del sidebar */
         display: flex !important;
         justify-content: center !important; /* Centrado absoluto del texto */
         align-items: center !important;
         cursor: pointer !important;
         margin: 0 !important;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5) !important; /* Sombra tridimensional de caja física real */
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important; /* Sombra tridimensional */
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
-    /* Separación amplia entre cuadros independientes (diseño de cuadrícula/bloques aislados) */
+    /* Separación entre botones independientes */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] > div {
-        margin-bottom: 20px !important; /* Amplia separación para un diseño limpio sin toques erróneos */
-    }
-    
-    /* Efecto Hover/Touch: Elevación del cuadro y brillo de luz */
-    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:hover {
-        border-color: #ffd700cc !important; /* Resalte dorado al hover */
-        border-left: 6px solid #ffd700 !important; /* Barra lateral izquierda se ilumina full oro */
-        background: linear-gradient(135deg, #161622 0%, #202030 100%) !important;
-        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.18) !important;
-        transform: translateY(-3px) !important; /* Elevación física del cuadro */
-    }
-    
-    /* Texto súper claro, grande e impactante dentro de cada cuadro */
-    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label [data-testid="stMarkdownContainer"] p {
-        font-size: 1.15rem !important; /* Letra más grande para lectura súper cómoda */
-        font-weight: 800 !important; /* Estilo extra grueso de alta visibilidad */
-        color: #ffffff !important;
-        text-align: center !important; /* Centrado del nombre de sección */
-        width: 100% !important;
-        letter-spacing: 0.04em !important;
-        margin: 0 !important;
-        text-transform: capitalize !important; /* Formato elegante */
-    }
-    
-    /* CUANDO EL CUADRO ESTÁ SELECCIONADO (ESTADO ACTIVO PREMIUM) */
-    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) {
-        border-color: #10b981 !important; /* Borde verde brillante de activo */
-        border-left: 8px solid #10b981 !important; /* Barra lateral izquierda se convierte en indicador verde esmeralda brillante */
-        background: linear-gradient(135deg, #092218 0%, #05140e 100%) !important; /* Hermoso degradado verde bosque premium */
-        box-shadow: 0 8px 22px rgba(16, 185, 129, 0.3) !important; /* Brillo verde cripto */
+        margin-bottom: 14px !important; /* Separación amplia para diseño limpio */
     }
 
-    /* Color de texto verde neón esmeralda cuando el cuadro está activo */
+    /* Efecto Hover: Brillo, elevación y borde blanco */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:hover {
+        border-color: #ffffff !important; /* El borde brilla en blanco */
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important; /* Azul más vivo */
+        box-shadow: 0 6px 18px rgba(30, 64, 175, 0.5) !important; /* Glow azul */
+        transform: translateY(-2px) !important; /* Elevación física */
+    }
+
+    /* EFECTO CLICK ELÁSTICO (BLOB / BURBUJA LÍQUIDA AL PRESIONAR) */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:active {
+        transform: scale(0.91) translateY(2px) !important; /* Se encoge y baja en el click */
+        border-radius: 18px !important; /* Se deforma como una burbuja/blob líquido */
+        border-color: #ffffff !important; /* El borde destella blanco */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6) !important;
+        transition: transform 0.05s ease-out, border-radius 0.05s ease-out !important;
+    }
+
+    /* Texto súper claro, grande y legible dentro de cada botón */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label [data-testid="stMarkdownContainer"] p {
+        font-size: 1.12rem !important; /* Letra más grande y legible */
+        font-weight: 850 !important; /* Extra grueso de alta visibilidad */
+        color: #ffffff !important; /* Color blanco de base */
+        text-align: center !important;
+        width: 100% !important;
+        letter-spacing: 0.03em !important;
+        margin: 0 !important;
+        text-transform: capitalize !important;
+    }
+
+    /* CUANDO EL BOTÓN ESTÁ SELECCIONADO (ESTADO ACTIVO DE LA VENTANA) */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) {
+        border-color: #ffd700 !important; /* Borde dorado brillante */
+        border-width: 2.5px !important;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important; /* Degradado azul zafiro premium */
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5) !important; /* Brillo azul */
+    }
+
+    /* Color de texto dorado cuando el botón está seleccionado/activo */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) [data-testid="stMarkdownContainer"] p {
-        color: #10b981 !important; /* Texto verde esmeralda de sección seleccionada */
+        color: #ffd700 !important; /* Texto en amarillo dorado para resaltar la ventana activa */
     }
 
     </style>
@@ -1891,7 +1911,7 @@ else:
         if "👑 Panel del Propietario" not in nav_options:
             nav_options.append("👑 Panel del Propietario")
         
-    choice = st.sidebar.radio("Navegación", nav_options)
+    choice = st.sidebar.radio("🌐 Todas las ventanas de la app", nav_options)
     
     if st.sidebar.button("🚪 Cerrar Sesión"):
         st.session_state.logged_in = False
