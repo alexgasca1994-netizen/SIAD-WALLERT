@@ -64,7 +64,7 @@ def init_db():
             id INTEGER PRIMARY KEY DEFAULT 1,
             token_name TEXT DEFAULT 'Alianza',
             token_symbol TEXT DEFAULT 'SD',
-            token_contract TEXT DEFAULT '0x97a2f26038df3b82f6e9e2e2b33b261ab17',
+            token_contract TEXT DEFAULT '0xC324649213ec1757190bc4b78bcD41Cc1545C264',
             token_price_usd REAL DEFAULT 0.50,
             nequi_number TEXT DEFAULT '3001234567'
         )
@@ -222,7 +222,9 @@ def init_db():
         pass 
         
     try:
-        cursor.execute("UPDATE token_settings SET token_name = 'Alianza', token_symbol = 'SD' WHERE id = 1 AND (token_name = 'Mi Criptomoneda' OR token_name = 'SI' || 'AD')")
+        
+        cursor.execute("UPDATE token_settings SET token_name = 'Alianza', token_symbol = 'SD', token_contract = '0xC324649213ec1757190bc4b78bcD41Cc1545C264' WHERE id = 1")
+
     except Exception:
         pass
 
@@ -246,7 +248,7 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         cursor.execute("""
             INSERT INTO token_settings (id, token_name, token_symbol, token_contract, token_price_usd, nequi_number)
-            VALUES (1, 'Alianza', 'SD', '0x97a2f26038df3b82f6e9e2e2b33b261ab17', 0.50, '3001234567')
+            VALUES (1, 'Alianza', 'SD', '0xC324649213ec1757190bc4b78bcD41Cc1545C264', 0.50, '3001234567')
         """)
     
     # Crear un administrador por defecto si no existe
@@ -296,7 +298,7 @@ def get_token_settings():
     return {
         "name": "Alianza",
         "symbol": "SD",
-        "contract": "0x97a2f26038df3b82f6e9e2e2b33b261ab17",
+        "contract": "0xC324649213ec1757190bc4b78bcD41Cc1545C264",
         "price_usd": 0.50,
         "nequi_number": "3001234567"
     }
@@ -375,13 +377,13 @@ def approve_referral_reward(reward_id):
             add_notification(
                 referrer_code,
                 f"💰 <b>¡Comisión de Referido Recibida!</b> El administrador ha liberado tu comisión de "
-                f"<b>{reward_amount_sd:,.4f} SD</b> por la compra de tu referido <b>{referred_name}</b>. ¡Gracias por expandir nuestra comunidad!"
+                f"<b>{format_num(reward_amount_sd)} SD</b> por la compra de tu referido <b>{referred_name}</b>. ¡Gracias por expandir nuestra comunidad!"
             )
             
             # Enviar notificación al admin de que ya la pagó
             add_notification(
                 "99999",
-                f"👥 <b>Comisión Pagada:</b> Se han transferido con éxito <b>{reward_amount_sd:,.4f} SD</b> de comisión al referidor <b>{referrer_code}</b>."
+                f"👥 <b>Comisión Pagada:</b> Se han transferido con éxito <b>{format_num(reward_amount_sd)} SD</b> de comisión al referidor <b>{referrer_code}</b>."
             )
         return success, msg
     conn.close()
@@ -505,7 +507,7 @@ def buy_store_item(user_code, item_id):
         # 7. Notificación al usuario
         add_notification(
             user_code,
-            f"🛍️ <b>¡Pedido recibido!</b> Has comprado <b>{item_name}</b> por <b>{price_sd:,.4f} SD</b>. "
+            f"🛍️ <b>¡Pedido recibido!</b> Has comprado <b>{item_name}</b> por <b>{format_num(price_sd)} SD</b>. "
             f"Tu pedido se encuentra pendiente de entrega por el administrador."
         )
         return True, "Compra registrada con éxito. Se encuentra en espera de entrega por el administrador."
@@ -539,7 +541,7 @@ def deliver_store_purchase(purchase_id, code_delivered=""):
                     VALUES ('SYSTEM_STORE_REFUND', ?, ?)
                 """, (user_code, price_sd))
                 msg_notif = f"👑 <b>¡Membresía VIP Activada!</b> El administrador aprobó tu membresía VIP de Alianza. " \
-                            f"Por ser un beneficio VIP de bienvenida, te hemos reembolsado el 100% de su valor: <b>{price_sd:,.4f} SD</b> ($30.00 USD) de inmediato a tu cuenta. " \
+                            f"Por ser un beneficio VIP de bienvenida, te hemos reembolsado el 100% de su valor: <b>{format_num(price_sd)} SD</b> ($30.00 USD) de inmediato a tu cuenta. " \
                             f"Ahora tus comisiones de retiro se reducen al 1% y tus ganancias de referidos aumentan al 25% de por vida. ¡Disfruta tus privilegios!"
             else:
                 msg_notif = f"🎁 <b>¡Tu pedido ha sido entregado!</b> Has recibido tu <b>{item_name}</b>. "                             f"<b>Código/Pin de Activación:</b> <code style='font-size:1.1rem; color:#ffd700;'>{code_delivered}</code>. ¡Gracias por usar la tienda Alianza!"
@@ -588,7 +590,7 @@ def reject_store_purchase(purchase_id):
             add_notification(
                 user_code,
                 f"🔴 <b>Pedido Cancelado:</b> Tu compra de <b>{item_name}</b> fue rechazada y reembolsada. "
-                f"Se han devuelto <b>{price_sd:,.4f} SD</b> intactos a tu billetera."
+                f"Se han devuelto <b>{format_num(price_sd)} SD</b> intactos a tu billetera."
             )
             return True
         except Exception as e:
@@ -647,7 +649,7 @@ def approve_purchase(request_id):
             add_notification(
                 user_code, 
                 f"🟢 <b>¡Compra aprobada con éxito!</b> El administrador validó tu transferencia de <b>${amount_cop:,.0f} COP</b>. "
-                f"Se han acreditado <b>{amount_sd:,.4f} SD</b> directamente a tu billetera."
+                f"Se han acreditado <b>{format_num(amount_sd)} SD</b> directamente a tu billetera."
             )
             
             # Si tiene un referidor válido, calcular el 20% (o 25% si es VIP) y crear registro de comisión pendiente
@@ -677,8 +679,8 @@ def approve_purchase(request_id):
                 add_notification(
                     "99999",
                     f"👥 <b>¡Comisión Pendiente de Referidos!</b> El usuario referido <b>{fullname}</b> ({user_code}) "
-                    f"compró y fue aprobado por <b>{amount_sd:,.4f} SD</b>. "
-                    f"Debes enviar una comisión del 20% (<b>{reward_amount_sd:,.4f} SD</b>) al referidor <b>{referrer_fullname}</b> (Billetera: <b>{referred_by}</b>)."
+                    f"compró y fue aprobado por <b>{format_num(amount_sd)} SD</b>. "
+                    f"Debes enviar una comisión del 20% (<b>{format_num(reward_amount_sd)} SD</b>) al referidor <b>{referrer_fullname}</b> (Billetera: <b>{referred_by}</b>)."
                 )
         return success, msg
     conn.close()
@@ -926,10 +928,10 @@ def send_points(sender_code, receiver_code, amount):
             add_notification(
                 receiver_code,
                 f"📥 <b>¡Has recibido fondos!</b> El código de billetera <b>{sender_code}</b> te ha enviado "
-                f"<b>{amount:,.4f} SD</b> de forma directa."
+                f"<b>{format_num(amount)} SD</b> de forma directa."
             )
         
-        return True, f"¡Acreditación exitosa! Has enviado {amount:,.4f} tokens."
+        return True, f"¡Acreditación exitosa! Has enviado {format_num(amount)} tokens."
     except Exception as e:
         conn.rollback()
         conn.close()
@@ -942,6 +944,33 @@ def get_user_balance(username):
     res = cursor.fetchone()
     conn.close()
     return res if res else (0.0, "", 0.0, 0)
+
+
+def format_num(val):
+    if val is None:
+        return "0"
+    try:
+        val_f = float(val)
+        if val_f.is_integer() or abs(val_f - round(val_f)) < 1e-9:
+            return f"{int(round(val_f)):,}"
+        formatted = f"{val_f:,.2f}"
+        if '.' in formatted:
+            formatted = formatted.rstrip('0').rstrip('.')
+        return formatted
+    except Exception:
+        return str(val)
+
+def update_user_balance_and_cop(user_code, balance_sd, balance_cop):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users 
+        SET balance = ?, balance_cop = ? 
+        WHERE wallet_code = ?
+    """, (balance_sd, balance_cop, user_code))
+    conn.commit()
+    conn.close()
+
 
 def get_user_nequi(wallet_code):
     conn = get_db_connection()
@@ -1042,18 +1071,18 @@ def pay_delivery_service(sender_code, driver_code, amount_sd, service_id=""):
         lbl_service = f" (ID Guía: {service_id})" if service_id else ""
         add_notification(
             sender_code,
-            f"📦 <b>¡Pago de Envío Realizado!</b> Pagaste <b>{amount_sd:,.4f} SD</b> "
+            f"📦 <b>¡Pago de Envío Realizado!</b> Pagaste <b>{format_num(amount_sd)} SD</b> "
             f"(${amount_cop:,.0f} COP) al móvil <b>{driver_name} ({driver_code})</b>{lbl_service}. "
-            f"🔥 <b>¡Subsidio Alianza!</b> Se te ha devuelto un reembolso del 50% (<b>{cashback_sd:,.4f} SD</b>) a tu billetera de forma automática. <b>¡El envío te costó la mitad!</b>"
+            f"🔥 <b>¡Subsidio Alianza!</b> Se te ha devuelto un reembolso del 50% (<b>{format_num(cashback_sd)} SD</b>) a tu billetera de forma automática. <b>¡El envío te costó la mitad!</b>"
         )
         add_notification(
             driver_code,
-            f"📦 <b>¡Pago de Envío Recibido!</b> El cliente <b>{sender_name}</b> te pagó <b>{amount_sd:,.4f} SD</b> "
+            f"📦 <b>¡Pago de Envío Recibido!</b> El cliente <b>{sender_name}</b> te pagó <b>{format_num(amount_sd)} SD</b> "
             f"(${amount_cop:,.0f} COP){lbl_service}. "
-            f"🚀 <b>¡Bono Alianza!</b> Recibiste un bono del 10% adicional (<b>{bonus_sd:,.4f} SD</b>) del fondo del Administrador. "
+            f"🚀 <b>¡Bono Alianza!</b> Recibiste un bono del 10% adicional (<b>{format_num(bonus_sd)} SD</b>) del fondo del Administrador. "
             f"Total recibido: <b>{(amount_sd + bonus_sd):,.4f} SD</b>."
         )
-        return True, f"¡Pago exitoso! Enviaste {amount_sd:,.4f} SD, se te reembolsó el 50% de inmediato ({cashback_sd:,.4f} SD) y el conductor recibió {amount_sd + bonus_sd:,.4f} SD (10% bono)."
+        return True, f"¡Pago exitoso! Enviaste {format_num(amount_sd)} SD, se te reembolsó el 50% de inmediato ({format_num(cashback_sd)} SD) y el conductor recibió {amount_sd + bonus_sd:,.4f} SD (10% bono)."
     except Exception as e:
         conn.rollback()
         conn.close()
@@ -1083,7 +1112,7 @@ def pay_weekly_fee(user_code, use_tokens=True):
             
             if balance_sd < fee_sd:
                 conn.close()
-                return False, f"Saldo en SD insuficiente. Necesitas {fee_sd:,.4f} SD para pagar con descuento del 20%."
+                return False, f"Saldo en SD insuficiente. Necesitas {format_num(fee_sd)} SD para pagar con descuento del 20%."
                 
             # Cobrar en SD (enviar a la cuenta del admin '99999')
             cursor.execute("UPDATE users SET balance = balance - ? WHERE wallet_code = ?", (fee_sd, user_code))
@@ -1108,14 +1137,14 @@ def pay_weekly_fee(user_code, use_tokens=True):
             add_notification(
                 user_code,
                 f"💳 <b>¡Cuota Semanal Pagada!</b> Has pagado tu cuota de móvil por valor de <b>$32,000 COP</b> "
-                f"(pagados con <b>{fee_sd:,.4f} SD</b> tras aplicar un 20% de descuento). ¡Gracias por tu pago!"
+                f"(pagados con <b>{format_num(fee_sd)} SD</b> tras aplicar un 20% de descuento). ¡Gracias por tu pago!"
             )
             add_notification(
                 '99999',
                 f"🚚 <b>¡Pago de Cuota Recibido!</b> El móvil <b>{fullname} ({user_code})</b> ha pagado su cuota semanal "
-                f"usando tokens SD (Recibido: <b>{fee_sd:,.4f} SD</b> equivalente a $32,000 COP)."
+                f"usando tokens SD (Recibido: <b>{format_num(fee_sd)} SD</b> equivalente a $32,000 COP)."
             )
-            return True, f"Cuota de móvil pagada con éxito usando {fee_sd:,.4f} SD ($32,000 COP)."
+            return True, f"Cuota de móvil pagada con éxito usando {format_num(fee_sd)} SD ($32,000 COP)."
             
         else:
             # Cuota sin descuento = 40.000 COP
@@ -1235,9 +1264,9 @@ def swap_sd_to_cop(user_code, amount_sd, rate_usd, usd_cop_rate):
         # Enviar notificación
         add_notification(
             user_code,
-            f"🔄 <b>Swap completado exitosamente:</b> Has cambiado <b>{amount_sd:,.4f} SD</b> por un valor de <b>${cop_value:,.0f} COP</b>. El saldo se ha acreditado a tu cuenta."
+            f"🔄 <b>Swap completado exitosamente:</b> Has cambiado <b>{format_num(amount_sd)} SD</b> por un valor de <b>${cop_value:,.0f} COP</b>. El saldo se ha acreditado a tu cuenta."
         )
-        return True, f"¡Swap exitoso! Has convertido {amount_sd:,.4f} SD a ${cop_value:,.0f} COP."
+        return True, f"¡Swap exitoso! Has convertido {format_num(amount_sd)} SD a ${cop_value:,.0f} COP."
     except Exception as e:
         conn.rollback()
         conn.close()
@@ -1659,7 +1688,7 @@ else:
     balance_cop_equiv = balance_usd * usd_cop
     
     nav_options = ["🏠 Inicio y Balance", "💸 Enviar SD", "📥 Comprar SD", "🔄 Swap y Retiros", "🛍️ Tienda Alianza", "🚚 Mensajería Alianza", notif_label, "👤 Mi Perfil", "🛡️ Términos y Seguridad"]
-    if st.session_state.is_admin or st.sidebar.checkbox("🔓 Modo Propietario (Admin)"):
+    if st.session_state.is_admin:
         nav_options.append("👑 Panel del Propietario")
         
     choice = st.sidebar.radio("Navegación", nav_options)
@@ -1689,7 +1718,7 @@ else:
             st.markdown(f"""
             <div class="card">
                 <div class="metric-title">Balance en {token['symbol']} ({token['name']})</div>
-                <div class="metric-value" style="color: #10b981;">{balance:,.4f} {token['symbol']}</div>
+                <div class="metric-value" style="color: #10b981;">{format_num(balance)} {token['symbol']}</div>
                 <div class="metric-sub">Puntos de tu cuenta</div>
             </div>
             """, unsafe_allow_html=True)
@@ -2013,7 +2042,7 @@ else:
             <div class="card" style="border-left: 5px solid #10b981;">
                 <h4 style="margin-top:0; color: #ffd700;">💡 Consejos de Uso</h4>
                 <ul style="padding-left: 18px; font-size: 0.9rem; color: #ffffff; line-height: 1.4rem;">
-                    <li>El envío de monedas entre billeteras de esta red se efectúa en segundos.</li>\n                    <li>Por seguridad, las transacciones no son reversibles bajo ninguna circunstancia.</li>\n                    <li>Tu balance actual disponible es de <b>{balance:,.4f} {token['symbol']}</b>.</li>\n                </ul>
+                    <li>El envío de monedas entre billeteras de esta red se efectúa en segundos.</li>\n                    <li>Por seguridad, las transacciones no son reversibles bajo ninguna circunstancia.</li>\n                    <li>Tu balance actual disponible es de <b>{format_num(balance)} {token['symbol']}</b>.</li>\n                </ul>
             </div>
             """, unsafe_allow_html=True)
 
@@ -2032,11 +2061,35 @@ else:
             st.subheader("1. Cambiar tus Tokens SD a Pesos Colombianos")
             st.write(f"Vende tus tokens SD de forma instantánea dentro de la app para agregarlos a tu saldo retirable en pesos colombianos. Tasa de cambio oficial: **1 SD = ${token_price_cop:,.2f} COP**.")
             
+            if "swap_amount" not in st.session_state:
+                st.session_state.swap_amount = float(min(10.0, float(balance)))
+            
+            # Clamp value
+            st.session_state.swap_amount = min(max(0.0, float(st.session_state.swap_amount)), float(balance))
+
             col_sw1, col_sw2 = st.columns([2, 1])
             with col_sw1:
-                # Quitamos st.form para permitir la actualización interactiva e instantánea de la vista previa
-                amount_sd_to_swap = st.number_input(f"Cantidad de tokens {token['symbol']} a cambiar:", min_value=0.0000, max_value=max(float(balance), 0.0), value=min(10.0, float(balance)), step=1.0, format="%.4f")
+                st.write("<b>💡 Selecciona un porcentaje rápido o escribe la cantidad:</b>", unsafe_allow_html=True)
+                col_q1, col_q2, col_q3, col_q4 = st.columns(4)
+                if col_q1.button("25%", key="q_btn_25"):
+                    st.session_state.swap_amount = float(balance) * 0.25
+                    st.rerun()
+                if col_q2.button("50%", key="q_btn_50"):
+                    st.session_state.swap_amount = float(balance) * 0.50
+                    st.rerun()
+                if col_q3.button("75%", key="q_btn_75"):
+                    st.session_state.swap_amount = float(balance) * 0.75
+                    st.rerun()
+                if col_q4.button("100%", key="q_btn_100"):
+                    st.session_state.swap_amount = float(balance)
+                    st.rerun()
+
+                amount_sd_to_swap = st.number_input(f"Cantidad de tokens {token['symbol']} a cambiar:", min_value=0.0000, max_value=max(float(balance), 0.0), value=float(st.session_state.swap_amount), step=1.0, format="%.4f", key="swap_amt_input_field")
+                st.session_state.swap_amount = amount_sd_to_swap
                 
+                # Info text for mobile
+                st.info("📱 <b>Tip para celular:</b> Escribe la cantidad y toca la pantalla afuera del teclado o presiona 'Hecho/Enter' para actualizar la conversión en vivo de inmediato.")
+
                 if st.button("Ejecutar Swap de Inmediato", key="execute_swap_direct_btn"):
                     if amount_sd_to_swap <= 0:
                         st.error("⚠️ El monto a cambiar debe ser mayor que cero.")
@@ -2045,6 +2098,7 @@ else:
                     else:
                         success, msg = swap_sd_to_cop(st.session_state.wallet_code, amount_sd_to_swap, token_price_usd, usd_cop)
                         if success:
+                            st.session_state.swap_amount = 0.0
                             st.balloons()
                             st.success(msg)
                             st.rerun()
@@ -2056,9 +2110,9 @@ else:
                 st.markdown(f"""
                 <div class="card" style="border-left: 5px solid #10b981;">
                     <h4 style="margin-top:0; color:#10b981;">💰 Vista Previa de Liquidación</h4>
-                    <p style="font-size:0.9rem; color:#ffffff;"><b>Cantidad a Cambiar:</b> {amount_sd_to_swap:,.4f} SD</p>
-                    <p style="font-size:0.9rem; color:#ffffff;"><b>Equivalente en Dólares (USD):</b> ${preview_usd_val:,.2f} USD</p>
-                    <p style="font-size:1.15rem; color:#ffd700; font-weight:bold; margin-top:10px;"><b>Recibirás en Pesos (COP):</b> ${preview_cop_val:,.0f} COP</p>
+                    <p style="font-size:0.9rem; color:#ffffff; margin: 4px 0;"><b>Cantidad a Cambiar:</b> {format_num(amount_sd_to_swap)} SD</p>
+                    <p style="font-size:0.9rem; color:#ffffff; margin: 4px 0;"><b>Equivalente en Dólares (USD):</b> ${format_num(preview_usd_val)} USD</p>
+                    <p style="font-size:1.15rem; color:#ffd700; font-weight:bold; margin-top:10px;"><b>Recibirás en Pesos (COP):</b> ${format_num(preview_cop_val)} COP</p>
                     <span style="font-size:0.75rem; color:#a1a1aa; display:block; margin-top:10px;">
                         ⚠️ El cambio se efectúa con cotizaciones en tiempo real y no se puede anular ni reversar.
                     </span>
@@ -2078,12 +2132,12 @@ else:
                     col_w1, col_w2 = st.columns([2, 1])
                     with col_w1:
                         user_nequi_saved = get_user_nequi(st.session_state.wallet_code)
-                        with st.form("withdraw_req_form"):
-                            amount_cop_to_withdraw = st.number_input("Ingresa la cantidad en Pesos (COP) a retirar (Mínimo $1,000 COP):", min_value=1000.0, max_value=float(balance_cop_user), step=5000.0)
-                            nequi_account_w = st.text_input("Número de Cuenta Nequi (10 dígitos):", value=user_nequi_saved, max_chars=11, placeholder="Ej. 3001234567")
-                            submit_w = st.form_submit_button("Solicitar Envío de Dinero")
+                        amount_cop_to_withdraw = st.number_input("Ingresa la cantidad en Pesos (COP) a retirar (Mínimo $1,000 COP):", min_value=1000.0, max_value=float(balance_cop_user), step=5000.0, key="withdraw_amt_input_field")
+                        nequi_account_w = st.text_input("Número de Cuenta Nequi (10 dígitos):", value=user_nequi_saved, max_chars=11, placeholder="Ej. 3001234567", key="withdraw_nequi_input_field")
                         
-                        if submit_w:
+                        st.info("📱 <b>Tip para celular:</b> Toca la pantalla fuera del teclado para actualizar el descuento de la comisión en la tarjeta de la derecha de inmediato.")
+
+                        if st.button("Solicitar Envío de Dinero", key="submit_withdrawal_direct_btn"):
                             if amount_cop_to_withdraw < 1000:
                                 st.error("El retiro mínimo es de $1,000 COP.")
                             elif amount_cop_to_withdraw > balance_cop_user:
@@ -2105,12 +2159,12 @@ else:
                     st.markdown(f"""
                     <div class="card" style="border-left: 5px solid #ffd700;">
                         <h4 style="margin-top:0; color:#ffd700;">💸 Liquidación de Transferencia</h4>
-                        <p style="font-size:0.85rem; color:#ffffff;"><b>Monto de Retiro:</b> ${amount_cop_to_withdraw:,.0f} COP</p>
-                        <p style="font-size:0.85rem; color:#ef4444;"><b>Comisión de Retiro ({"1%" if is_vip_user == 1 else "2%"}):</b> ${fee_val:,.0f} COP</p>
+                        <p style="font-size:0.85rem; color:#ffffff;"><b>Monto de Retiro:</b> ${format_num(amount_cop_to_withdraw)} COP</p>
+                        <p style="font-size:0.85rem; color:#ef4444;"><b>Comisión de Retiro ({"1%" if is_vip_user == 1 else "2%"}):</b> ${format_num(fee_val)} COP</p>
                         <hr style="border-color:#3f3f46; margin: 10px 0;">
-                        <p style="font-size:1.1rem; color:#10b981; font-weight:bold;"><b>A Transferir a Nequi:</b> ${net_val:,.0f} COP</p>
+                        <p style="font-size:1.1rem; color:#10b981; font-weight:bold;"><b>A Transferir a Nequi:</b> ${format_num(net_val)} COP</p>
                         <span style="font-size:0.75rem; color:#a1a1aa; display:block; margin-top:10px;">
-                            🔒 El saldo solicitado de ${amount_cop_to_withdraw:,.0f} COP se congela para retiro y se borrará definitivamente cuando el administrador te envíe la captura de confirmación del pago.
+                            🔒 El saldo solicitado de ${format_num(amount_cop_to_withdraw)} COP se congela para retiro y se borrará definitivamente cuando el administrador te envíe la captura de confirmación del pago.
                         </span>
                     </div>
                     """, unsafe_allow_html=True)
@@ -2333,26 +2387,25 @@ else:
             
             col_ship_f, col_ship_info = st.columns([2, 1])
             with col_ship_f:
-                with st.form("pay_delivery_form"):
-                    driver_code_input = st.text_input("Código de Billetera del Conductor / Móvil (5 dígitos):", max_chars=5, placeholder="Ej. 12345")
-                    amount_sd_input = st.number_input("Monto del envío a pagar en Tokens SD:", min_value=0.0001, step=1.0, format="%.4f")
-                    service_id_input = st.text_input("ID de Envío / Número de Guía (Opcional):", placeholder="Ej. GUIA-9831")
-                    
-                    submit_ship = st.form_submit_button("Confirmar y Pagar Envío")
-                    
-                    if submit_ship:
-                        if len(driver_code_input) != 5 or not driver_code_input.isdigit():
-                            st.error("⚠️ El código del móvil debe tener exactamente 5 dígitos numéricos.")
-                        elif amount_sd_input <= 0:
-                            st.error("⚠️ El monto del pago en SD debe ser mayor a cero.")
+                driver_code_input = st.text_input("Código de Billetera del Conductor / Móvil (5 dígitos):", max_chars=5, placeholder="Ej. 12345", key="msg_driver_input_field")
+                amount_sd_input = st.number_input("Monto del envío a pagar en Tokens SD:", min_value=0.0000, value=1.0, step=1.0, format="%.4f", key="msg_amt_input_field")
+                service_id_input = st.text_input("ID de Envío / Número de Guía (Opcional):", placeholder="Ej. GUIA-9831", key="msg_guia_input_field")
+                
+                st.info("📱 <b>Tip para celular:</b> Toca la pantalla fuera del teclado para actualizar la cotización de subsidio de la derecha de inmediato.")
+
+                if st.button("Confirmar y Pagar Envío", key="pay_delivery_direct_btn"):
+                    if len(driver_code_input) != 5 or not driver_code_input.isdigit():
+                        st.error("⚠️ El código del móvil debe tener exactamente 5 dígitos numéricos.")
+                    elif amount_sd_input <= 0:
+                        st.error("⚠️ El monto del pago en SD debe ser mayor a cero.")
+                    else:
+                        success, msg = pay_delivery_service(st.session_state.wallet_code, driver_code_input, amount_sd_input, service_id_input)
+                        if success:
+                            st.balloons()
+                            st.success(msg)
+                            st.rerun()
                         else:
-                            success, msg = pay_delivery_service(st.session_state.wallet_code, driver_code_input, amount_sd_input, service_id_input)
-                            if success:
-                                st.balloons()
-                                st.success(msg)
-                                st.rerun()
-                            else:
-                                st.error(msg)
+                            st.error(msg)
             with col_ship_info:
                 # Mostrar cotización del envío dinámicamente
                 equiv_cop_calc = amount_sd_input * token_price_cop
@@ -2370,12 +2423,12 @@ else:
                         Al pagar tu envío usando tus tokens <b>Alianza (SD)</b>, el Administrador financia automáticamente el <b>50%</b> de tu envío y te lo devuelve al instante.
                     </p>
                     <hr style="border-color:#232d42; margin: 10px 0;">
-                    <p style="font-size:0.85rem; color:#ffffff; margin:3px 0;"><b>Tarifa de Envío:</b> {amount_sd_input:,.4f} SD (${equiv_cop_calc:,.0f} COP)</p>
-                    <p style="font-size:0.85rem; color:#10b981; margin:3px 0;"><b>Cashback al Instante (50%):</b> +{cashback_sd_preview:,.4f} SD (+${cashback_cop_preview:,.0f} COP)</p>
-                    <p style="font-size:1.1rem; color:#ffd700; font-weight:bold; margin:8px 0;"><b>Tu Costo Neto Real:</b> {net_sd_preview:,.4f} SD (${net_cop_preview:,.0f} COP)</p>
+                    <p style="font-size:0.85rem; color:#ffffff; margin:3px 0;"><b>Tarifa de Envío:</b> {format_num(amount_sd_input)} SD (${format_num(equiv_cop_calc)} COP)</p>
+                    <p style="font-size:0.85rem; color:#10b981; margin:3px 0;"><b>Cashback al Instante (50%):</b> +{format_num(cashback_sd_preview)} SD (+${format_num(cashback_cop_preview)} COP)</p>
+                    <p style="font-size:1.1rem; color:#ffd700; font-weight:bold; margin:8px 0;"><b>Tu Costo Neto Real:</b> {format_num(net_sd_preview)} SD (${format_num(net_cop_preview)} COP)</p>
                     <hr style="border-color:#232d42; margin: 10px 0;">
                     <p style="font-size:0.85rem; color:#ffffff; margin:3px 0;"><b>El Conductor recibe (110%):</b></p>
-                    <p style="font-size:1.0rem; color:#10b981; font-weight:bold; margin:3px 0;">{driver_receives_sd:,.4f} SD (${driver_receives_cop:,.0f} COP)</p>
+                    <p style="font-size:1.0rem; color:#10b981; font-weight:bold; margin:3px 0;">{format_num(driver_receives_sd)} SD (${format_num(driver_receives_cop)} COP)</p>
                     <span style="font-size:0.75rem; color:#a1a1aa; line-height:1.1rem; display:block; margin-top:10px;">
                         ℹ️ El 50% de tu reembolso y el 10% de bono del conductor son financiados automáticamente de forma directa desde la billetera de fondos base del administrador.
                     </span>
@@ -2409,7 +2462,7 @@ else:
                         <p style="font-size:0.85rem; color:#a1a1aa;">Paga con tus monedas ganadas o compradas y aprovecha el descuento de tarifa.</p>
                         <hr style="border-color:#232d42; margin:10px 0;">
                         <span style="font-size:0.9rem; color:#ffffff;"><b>Valor cuota:</b> $32,000 COP (20% OFF)</span><br>
-                        <span style="font-size:1.35rem; font-weight:800; color:#ffd700; display:block; margin-top:5px;">{fee_sd_with_discount:,.4f} SD</span>
+                        <span style="font-size:1.35rem; font-weight:800; color:#ffd700; display:block; margin-top:5px;">{format_num(fee_sd_with_discount)} SD</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -2603,9 +2656,9 @@ else:
                                 add_notification(
                                     t_code,
                                     f"👑 <b>¡Acreditación Oficial!</b> El propietario de la app ha cargado directamente "
-                                    f"<b>{m_amount:,.4f} SD</b> en tu cuenta."
+                                    f"<b>{format_num(m_amount)} SD</b> en tu cuenta."
                                 )
-                                st.success(f"¡Asignación Exitosa! Se enviaron {m_amount:,.4f} {token['symbol']} al código {t_code}.")
+                                st.success(f"¡Asignación Exitosa! Se enviaron {format_num(m_amount)} {token['symbol']} al código {t_code}.")
                                 st.balloons()
                                 st.rerun()
                             else:
