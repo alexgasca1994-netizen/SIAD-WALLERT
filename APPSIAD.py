@@ -14,7 +14,7 @@ except ImportError:
     st_autorefresh = None
 
 # --- CONSTANTES Y CONFIGURACIONES ---
-VIP_BADGE_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCADIAMgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD4zNFJRQAuaKKKACiiigAozRQBQAUU4LmnCMmrUGwI8GjBqwsRParaYaj/CfyrVYeTFcrYNJg1c+zv/df+VNaBh/Cfyp/VpdguVcGjmp2iNMKEVm6TQXI80ZpxWmkVm4tDDNFJS0gCiiigA7UUUlAC0UU"
+VIP_BADGE_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCADIAMgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD4zNFJRQAuaKKKACiiigAozRQBQAUU4LmnCMmrUGwI8GjBqwsRParCBj/CfyrVYeTFcrYNJg1c+zv/df+VNaBh/Cfyp/VpdguVcGjmp2iNMKEVm6TQXI80ZpxWmkVm4tDDNFJS0gCiiigA7UUUlAC0UU"
 
 # Configuración de página de Streamlit
 st.set_page_config(
@@ -361,7 +361,7 @@ def mark_notifications_as_read(user_code):
     conn.commit()
     conn.close()
 
-# --- FUNCIONES DE LA TIENDA ALIANZA (Parche: Lógica implementada y completada) ---
+# --- FUNCIONES DE LA TIENDA ALIANZA ---
 def get_user_purchases(user_code):
     conn = get_db_connection()
     df = pd.read_sql_query("""
@@ -977,10 +977,14 @@ def get_platform_fees_summary():
     total_fees = cursor.fetchone()[0] or 0.0
     cursor.execute("SELECT SUM(fee_cop) FROM withdrawal_requests WHERE status = 'APPROVED' AND fee_status = 'CLAIMED'")
     claimed_fees = cursor.fetchone()[0] or 0.0
+    available_fees = total_fees - claimed_fees
     conn.close()
-    return total_fees, total_fees - claimed_fees
+    return total_fees, claimed_fees, available_fees
 
 def claim_platform_fees():
+    total_fees, locked_fees, available_fees = get_platform_fees_summary()
+    if available_fees <= 0:
+        return False, "No hay comisiones de plataforma liberadas disponibles para reclamar en este momento."
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE withdrawal_requests SET fee_status = 'CLAIMED' WHERE status = 'APPROVED' AND fee_status = 'UNCLAIMED'")
@@ -1268,10 +1272,10 @@ else:
     elif nav == "Dashboard Admin":
         st.markdown(f"<h1 class='golden-title'>Consola de Administración</h1>", unsafe_allow_html=True)
         st.write("Estatus global de la plataforma.")
-        total_f, pending_f = get_platform_fees_summary()
-        st.metric(label="Comisiones de Plataforma por Retiros", value=f"${format_num(total_f)} COP", delta=f"${format_num(pending_f)} COP Disponibles para reclamo")
+        total_f, pending_f, available_f = get_platform_fees_summary()
+        st.metric(label="Comisiones de Plataforma por Retiros", value=f"${format_num(total_f)} COP", delta=f"${format_num(available_f)} COP Disponibles para reclamo")
         if st.button("Reclamar Comisiones"):
-            if pending_f > 0:
+            if available_f > 0:
                 claim_platform_fees()
                 st.success("Comisiones reclamadas y agregadas a la cuenta madre.")
                 st.rerun()
@@ -1314,7 +1318,6 @@ else:
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("Aprobar y Enviar", key=f"app_wit_{row['id']}"):
-                        # En producción subirías un blob real de comprobante, aquí simulamos con vacío
                         approve_withdrawal(row['id'], b"comprobante_exito")
                         st.success("Retiro marcado como aprobado.")
                         st.rerun()
