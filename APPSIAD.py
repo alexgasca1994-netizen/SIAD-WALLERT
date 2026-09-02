@@ -2077,7 +2077,9 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
 
         with tab_token:
-            # DexScreener Embed iframe interactivo de una, directamente sin textos de información redundantes
+            st.markdown(f"#### 📊 Gráfico Profesional en Tiempo Real de **{token['name']} ({token['symbol']})**")
+            st.write("Contrato Inteligente (BSC): `0xC324649213ec1757190bc4b78bcD41Cc1545C264`")
+            # DexScreener Embed iframe interactivo
             dex_embed_html = """
             <iframe src="https://dexscreener.com/bsc/0xC324649213ec1757190bc4b78bcD41Cc1545C264?embed=1&theme=dark&trades=0" 
                     width="100%" 
