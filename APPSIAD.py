@@ -18,7 +18,7 @@ except ImportError:
 
 # Configuración de página de Streamlit
 st.set_page_config(
-    page_title="Alianza CryptoWallet v31",
+    page_title="Alianza CryptoWallet v29",
     page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -1675,11 +1675,6 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background-color: #060608 !important;
         border-right: 2px solid #ffd700 !important; /* Línea divisoria dorada */
-    }
-    
-    /* Evitar la línea amarilla huérfana en el borde de la pantalla cuando el menú se minimiza por completo */
-    section[data-testid="stSidebar"][data-collapsed="true"] {
-        border-right: none !important;
     }
     
     /* Input fields estilizados */
