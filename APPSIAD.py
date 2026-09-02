@@ -62,7 +62,7 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS token_settings (
             id INTEGER PRIMARY KEY DEFAULT 1,
-            token_name TEXT DEFAULT 'Alianza',
+            token_name TEXT DEFAULT 'SIAD',
             token_symbol TEXT DEFAULT 'SD',
             token_contract TEXT DEFAULT '0xC324649213ec1757190bc4b78bcD41Cc1545C264',
             token_price_usd REAL DEFAULT 0.50,
@@ -223,7 +223,7 @@ def init_db():
         
     try:
         
-        cursor.execute("UPDATE token_settings SET token_name = 'Alianza', token_symbol = 'SD', token_contract = '0xC324649213ec1757190bc4b78bcD41Cc1545C264' WHERE id = 1")
+        cursor.execute("UPDATE token_settings SET token_name = 'SIAD', token_symbol = 'SD', token_contract = '0xC324649213ec1757190bc4b78bcD41Cc1545C264' WHERE id = 1")
 
     except Exception:
         pass
@@ -248,7 +248,7 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         cursor.execute("""
             INSERT INTO token_settings (id, token_name, token_symbol, token_contract, token_price_usd, nequi_number)
-            VALUES (1, 'Alianza', 'SD', '0xC324649213ec1757190bc4b78bcD41Cc1545C264', 0.50, '3001234567')
+            VALUES (1, 'SIAD', 'SD', '0xC324649213ec1757190bc4b78bcD41Cc1545C264', 0.50, '3001234567')
         """)
     
     # Crear un administrador por defecto si no existe
@@ -296,7 +296,7 @@ def get_token_settings():
             "nequi_number": settings[4]
         }
     return {
-        "name": "Alianza",
+        "name": "SIAD",
         "symbol": "SD",
         "contract": "0xC324649213ec1757190bc4b78bcD41Cc1545C264",
         "price_usd": 0.50,
@@ -482,7 +482,7 @@ def buy_store_item(user_code, item_id):
     balance_row = cursor.fetchone()
     if not balance_row or balance_row[0] < price_sd:
         conn.close()
-        return False, "Saldo de tokens Alianza (SD) insuficiente para realizar esta compra."
+        return False, "Saldo de tokens SIAD (SD) insuficiente para realizar esta compra."
         
     try:
         # 4. Descontar balance de SD del usuario
@@ -722,14 +722,29 @@ def fetch_btc_price():
 
 @st.cache_data(ttl=10) # Cache for 10 seconds to keep it super fresh
 def fetch_sd_price_from_dexscreener():
+    # 1. Intentar con DexScreener
     try:
         url = "https://api.dexscreener.com/latest/dex/tokens/0xC324649213ec1757190bc4b78bcD41Cc1545C264"
         response = requests.get(url, timeout=3)
         if response.status_code == 200:
             data = response.json()
-            if data and 'pairs' in data and len(data['pairs']) > 0:
+            if data and 'pairs' in data and data['pairs'] is not None and len(data['pairs']) > 0:
                 pair = data['pairs'][0]
                 price_usd = float(pair.get('priceUsd', 0.0))
+                if price_usd > 0:
+                    return price_usd
+    except Exception:
+        pass
+
+    # 2. Intentar con GeckoTerminal (Excelente respaldo para pools de BNB que DexScreener no indexa rápido en su API de tokens)
+    try:
+        url = "https://api.geckoterminal.com/api/v2/networks/bsc/tokens/0xC324649213ec1757190bc4b78bcD41Cc1545C264"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            if data and 'data' in data and 'attributes' in data['data']:
+                price_usd = float(data['data']['attributes'].get('price_usd', 0.0))
                 if price_usd > 0:
                     return price_usd
     except Exception:
@@ -1004,7 +1019,7 @@ def pay_delivery_service(sender_code, driver_code, amount_sd, service_id=""):
     sender = cursor.fetchone()
     if not sender or sender[0] < amount_sd:
         conn.close()
-        return False, "Saldo de tokens Alianza (SD) insuficiente para pagar este envío."
+        return False, "Saldo de tokens SIAD (SD) insuficiente para pagar este envío."
     sender_name = sender[1]
     
     # 2. Verificar existencia del conductor (móvil)
@@ -1458,10 +1473,15 @@ def reject_withdrawal(request_id):
 st.markdown("""
     <style>
     /* Ocultar marca de Streamlit para que parezca una App propia */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display:none;}
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    .stDeployButton {display:none !important;}
+    
+    /* Mantener visible la cabecera para el botón de despliegue del menú pero totalmente transparente */
+    [data-testid="stHeader"] {
+        background-color: rgba(0,0,0,0) !important;
+        background: transparent !important;
+    }
     /* Fondo principal Negro Puro */
     .main {
         background-color: #000000 !important;
@@ -1688,8 +1708,17 @@ else:
     balance_cop_equiv = balance_usd * usd_cop
     
     nav_options = ["🏠 Inicio y Balance", "💸 Enviar SD", "📥 Comprar SD", "🔄 Swap y Retiros", "🛍️ Tienda Alianza", "🚚 Mensajería Alianza", notif_label, "👤 Mi Perfil", "🛡️ Términos y Seguridad"]
-    if st.session_state.is_admin:
-        nav_options.append("👑 Panel del Propietario")
+    
+    # El checkbox de Modo Propietario ahora es exclusivo para la cuenta del propietario de la app (@admin) o wallet_code '99999'
+    is_owner_user = (st.session_state.username == 'admin' or st.session_state.wallet_code == '99999' or st.session_state.is_admin)
+    if is_owner_user:
+        show_admin_panel = st.sidebar.checkbox("🔓 Modo Propietario (Admin)", value=st.session_state.is_admin)
+        if show_admin_panel:
+            if "👑 Panel del Propietario" not in nav_options:
+                nav_options.append("👑 Panel del Propietario")
+    elif st.session_state.is_admin:
+        if "👑 Panel del Propietario" not in nav_options:
+            nav_options.append("👑 Panel del Propietario")
         
     choice = st.sidebar.radio("Navegación", nav_options)
     
@@ -1935,8 +1964,8 @@ else:
                 df_disp['Tipo'] = df_disp.apply(lambda r: "🟢 Recibido" if r['receiver_code'] == st.session_state.wallet_code else "🔴 Enviado", axis=1)
                 df_disp['De'] = df_disp.apply(lambda r: "Tú (Billetera)" if r['sender_code'] == st.session_state.wallet_code else ("Owner/Sistema" if r['sender_code'] == "99999" else f"{r['sender_name']} ({r['sender_code']})"), axis=1)
                 df_disp['Para'] = df_disp.apply(lambda r: "Tú (Billetera)" if r['receiver_code'] == st.session_state.wallet_code else f"{r['receiver_name']} ({r['receiver_code']})", axis=1)
-                df_disp['Cantidad'] = df_disp['amount'].apply(lambda x: f"{x:,.4f} {token['symbol']}")
-                df_disp['Equivalente USD'] = df_disp['amount'].apply(lambda x: f"${x * token_price_usd:,.2f} USD")
+                df_disp['Cantidad'] = df_disp['amount'].apply(lambda x: f"{format_num(x)} {token['symbol']}")
+                df_disp['Equivalente USD'] = df_disp['amount'].apply(lambda x: f"${format_num(x * token_price_usd)} USD")
                 df_disp['Equivalente COP'] = df_disp['amount'].apply(lambda x: f"${x * token_price_usd * usd_cop:,.0f} COP")
                 
                 df_disp = df_disp[['timestamp', 'Tipo', 'De', 'Para', 'Cantidad', 'Equivalente USD', 'Equivalente COP']]
@@ -1955,7 +1984,7 @@ else:
                     lambda s: "🟡 Pendiente" if s == 'PENDING' else ("🟢 Aprobada" if s == 'APPROVED' else "🔴 Rechazada")
                 )
                 user_purchases_display['Valor en Pesos'] = user_purchases_display['amount_cop'].apply(lambda x: f"${x:,.0f} COP")
-                user_purchases_display['Tokens SD'] = user_purchases_display['amount_sd'].apply(lambda x: f"{x:,.4f} SD")
+                user_purchases_display['Tokens SD'] = user_purchases_display['amount_sd'].apply(lambda x: f"{format_num(x)} SD")
                 
                 for idx, r in user_purchases_display.iterrows():
                     with st.expander(f"📥 Compra #{r['id']} - {r['Fecha']} - {r['Estado']} ({r['Tokens SD']})"):
@@ -2049,7 +2078,7 @@ else:
     # --- SWAP Y RETIROS ---
     elif choice == "🔄 Swap y Retiros":
         st.markdown("<h1 class='golden-title'>🔄 Cambiar SD y Solicitar Retiro (Nequi)</h1>", unsafe_allow_html=True)
-        st.write("Convierte tus tokens Alianza (SD) a pesos colombianos líquidos e inicia solicitudes de retiro seguras directamente a tu cuenta Nequi.")
+        st.write("Convierte tus tokens SIAD (SD) a pesos colombianos líquidos e inicia solicitudes de retiro seguras directamente a tu cuenta Nequi.")
         
         tab_swap, tab_withdraw, tab_history_with = st.tabs([
             "🔄 Convertir SD a Pesos (COP)", 
@@ -2069,7 +2098,7 @@ else:
 
             col_sw1, col_sw2 = st.columns([2, 1])
             with col_sw1:
-                st.write("<b>💡 Selecciona un porcentaje rápido o escribe la cantidad:</b>", unsafe_allow_html=True)
+                st.write("<b>💡 Selecciona un porcentaje rápido o arrastra la barra de abajo para cotización en vivo:</b>", unsafe_allow_html=True)
                 col_q1, col_q2, col_q3, col_q4 = st.columns(4)
                 if col_q1.button("25%", key="q_btn_25"):
                     st.session_state.swap_amount = float(balance) * 0.25
@@ -2084,7 +2113,11 @@ else:
                     st.session_state.swap_amount = float(balance)
                     st.rerun()
 
-                amount_sd_to_swap = st.number_input(f"Cantidad de tokens {token['symbol']} a cambiar:", min_value=0.0000, max_value=max(float(balance), 0.0), value=float(st.session_state.swap_amount), step=1.0, format="%.4f", key="swap_amt_input_field")
+                # Deslizador interactivo instantáneo para móviles
+                amount_sd_to_swap_slider = st.slider(f"🎚️ Desliza para seleccionar la cantidad de {token['symbol']}:", min_value=0.0, max_value=max(float(balance), 0.0), value=float(st.session_state.swap_amount), step=1.0 if float(balance) > 10 else 0.1, key="swap_slider_key")
+                st.session_state.swap_amount = amount_sd_to_swap_slider
+
+                amount_sd_to_swap = st.number_input(f"O escribe la cantidad exacta de {token['symbol']}:", min_value=0.0000, max_value=max(float(balance), 0.0), value=float(st.session_state.swap_amount), step=1.0, format="%.4f", key="swap_amt_input_field")
                 st.session_state.swap_amount = amount_sd_to_swap
                 
                 # Info text for mobile
@@ -2301,7 +2334,7 @@ else:
     # --- TIENDA Alianza (COMPRA DE ARTÍCULOS Y MEMBRESÍA VIP) ---
     elif choice == "🛍️ Tienda Alianza":
         st.markdown(f"<h1 class='golden-title'>🛍️ Tienda Oficial Alianza ({token['symbol']})</h1>", unsafe_allow_html=True)
-        st.write("Gasta tus tokens Alianza (SD) acumulados en entretenimiento, recargas de juegos o adquiere la membresía VIP para maximizar tus ganancias financieras.")
+        st.write("Gasta tus tokens SIAD (SD) acumulados en entretenimiento, recargas de juegos o adquiere la membresía VIP para maximizar tus ganancias financieras.")
         
         # Consultar si el usuario es VIP
         is_vip_val = is_vip_user == 1
@@ -2383,12 +2416,36 @@ else:
         
         with tab_pay_ship:
             st.subheader("Pagar Envío Directamente al Conductor")
-            st.write("Ingresa el código único del móvil para transferirle de forma segura el valor del envío en tokens Alianza (SD).")
+            st.write("Ingresa el código único del móvil para transferirle de forma segura el valor del envío en tokens SIAD (SD).")
             
             col_ship_f, col_ship_info = st.columns([2, 1])
             with col_ship_f:
                 driver_code_input = st.text_input("Código de Billetera del Conductor / Móvil (5 dígitos):", max_chars=5, placeholder="Ej. 12345", key="msg_driver_input_field")
-                amount_sd_input = st.number_input("Monto del envío a pagar en Tokens SD:", min_value=0.0000, value=1.0, step=1.0, format="%.4f", key="msg_amt_input_field")
+                
+                if "msg_amt_input" not in st.session_state:
+                    st.session_state.msg_amt_input = 5.0
+                
+                st.write("<b>💡 Tarifas rápidas o desliza la barra de abajo para cotización en vivo:</b>", unsafe_allow_html=True)
+                col_sh_b1, col_sh_b2, col_sh_b3, col_sh_b4 = st.columns(4)
+                if col_sh_b1.button("5 SD", key="sh_btn_5"):
+                    st.session_state.msg_amt_input = 5.0
+                    st.rerun()
+                if col_sh_b2.button("10 SD", key="sh_btn_10"):
+                    st.session_state.msg_amt_input = 10.0
+                    st.rerun()
+                if col_sh_b3.button("15 SD", key="sh_btn_15"):
+                    st.session_state.msg_amt_input = 15.0
+                    st.rerun()
+                if col_sh_b4.button("20 SD", key="sh_btn_20"):
+                    st.session_state.msg_amt_input = 20.0
+                    st.rerun()
+
+                # Deslizador interactivo instantáneo para celular
+                amount_sd_input_slider = st.slider("🎚️ Desliza para ajustar la tarifa del envío:", min_value=0.0, max_value=200.0, value=float(st.session_state.msg_amt_input), step=1.0, key="msg_amt_slider_key")
+                st.session_state.msg_amt_input = amount_sd_input_slider
+
+                amount_sd_input = st.number_input("O escribe el monto exacto en Tokens SD:", min_value=0.0000, value=float(st.session_state.msg_amt_input), step=1.0, format="%.4f", key="msg_amt_input_field")
+                st.session_state.msg_amt_input = amount_sd_input
                 service_id_input = st.text_input("ID de Envío / Número de Guía (Opcional):", placeholder="Ej. GUIA-9831", key="msg_guia_input_field")
                 
                 st.info("📱 <b>Tip para celular:</b> Toca la pantalla fuera del teclado para actualizar la cotización de subsidio de la derecha de inmediato.")
@@ -2523,7 +2580,7 @@ else:
                     lambda r: "Maestra / Admin" if r['target_code'] == '99999' else (f"{r['driver_name']}" if r['target_code'] == st.session_state.wallet_code else f"{r['driver_name']} ({r['target_code']})"), axis=1
                 )
                 
-                df_m_display['Tokens SD'] = df_m_display['amount_sd'].apply(lambda x: f"{x:,.4f} SD")
+                df_m_display['Tokens SD'] = df_m_display['amount_sd'].apply(lambda x: f"{format_num(x)} SD")
                 df_m_display['Pesos Colombianos'] = df_m_display['amount_cop'].apply(lambda x: f"${x:,.0f} COP")
                 
                 df_m_display = df_m_display[['timestamp', 'Tipo de Pago', 'Rol', 'De', 'Para/Destino', 'Tokens SD', 'Pesos Colombianos']]
@@ -2592,7 +2649,7 @@ else:
             st.markdown(f"""
             <div class="card" style="border-left: 4px solid #ffd700;">
                 <h3 style="margin-top:0; color: #ffd700;">📝 Términos y Condiciones</h3>\n                <hr style="border-color: #ffd700; margin: 10px 0;">\n                <ol style="padding-left: 18px; font-size: 0.9rem; color: #e2e8f0; line-height: 1.5rem;">
-                    <li><b>Naturaleza del Token:</b> La moneda digital Alianza (SD) opera de forma descentralizada y segura en nuestra plataforma privada. La posesión de SD representa la total conformidad con el reglamento general.</li>\n                    <li><b>Irreversibilidad de Transacciones:</b> Debido a la estructura criptográfica e inmutabilidad de la base de datos de Alianza, <b>todas las transacciones, transferencias y envíos son definitivos</b>. No existe la posibilidad de reverso, anulación o cancelación.</li>\n                    <li><b>Responsabilidad de Envío:</b> Es responsabilidad exclusiva y total del usuario remitente verificar el código único de billetera de 5 dígitos del destinatario antes de presionar el botón de envío.</li>\n                    <li><b>Veracidad de los Pagos:</b> El envío de capturas o comprobantes de pago alterados, falsos o de transacciones ya procesadas resultará en la suspensión inmediata y permanente de la cuenta del usuario sin derecho a reclamos.</li>\n                </ol>
+                    <li><b>Naturaleza del Token:</b> La moneda digital SIAD (SD) opera de forma descentralizada y segura en nuestra plataforma privada. La posesión de SD representa la total conformidad con el reglamento general.</li>\n                    <li><b>Irreversibilidad de Transacciones:</b> Debido a la estructura criptográfica e inmutabilidad de la base de datos de Alianza, <b>todas las transacciones, transferencias y envíos son definitivos</b>. No existe la posibilidad de reverso, anulación o cancelación.</li>\n                    <li><b>Responsabilidad de Envío:</b> Es responsabilidad exclusiva y total del usuario remitente verificar el código único de billetera de 5 dígitos del destinatario antes de presionar el botón de envío.</li>\n                    <li><b>Veracidad de los Pagos:</b> El envío de capturas o comprobantes de pago alterados, falsos o de transacciones ya procesadas resultará en la suspensión inmediata y permanente de la cuenta del usuario sin derecho a reclamos.</li>\n                </ol>
             </div>
             """, unsafe_allow_html=True)
             
@@ -2957,7 +3014,7 @@ else:
                 df_all_m_display['Destino'] = df_all_m_display.apply(
                     lambda r: "Admin / Maestra" if r['target_code'] == '99999' else f"{r['target_name']} ({r['target_code']})", axis=1
                 )
-                df_all_m_display['Monto (SD)'] = df_all_m_display['amount_sd'].apply(lambda x: f"{x:,.4f} SD")
+                df_all_m_display['Monto (SD)'] = df_all_m_display['amount_sd'].apply(lambda x: f"{format_num(x)} SD")
                 df_all_m_display['Valor (COP)'] = df_all_m_display['amount_cop'].apply(lambda x: f"${x:,.0f} COP")
                 
                 df_all_m_display = df_all_m_display[['timestamp', 'Tipo de Pago', 'Cliente', 'Destino', 'Monto (SD)', 'Valor (COP)']]
@@ -2972,7 +3029,7 @@ else:
             with st.form("broadcast_form"):
                 broadcast_msg = st.text_area(
                     "Contenido del Mensaje (Soporta HTML básico como <b> o emojis 🚀)", 
-                    placeholder="Ej. 🚀 <b>¡Atención!</b> El valor del token Alianza (SD) ha subido un 10% hoy. ¡Revisa tu balance!",
+                    placeholder="Ej. 🚀 <b>¡Atención!</b> El valor del token SIAD (SD) ha subido un 10% hoy. ¡Revisa tu balance!",
                     height=150
                 )
                 submit_b = st.form_submit_button("📢 Difundir Comunicado")
