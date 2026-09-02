@@ -18,7 +18,7 @@ except ImportError:
 
 # Configuración de página de Streamlit
 st.set_page_config(
-    page_title="Alianza CryptoWallet v26",
+    page_title="Alianza CryptoWallet v29",
     page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -1687,51 +1687,61 @@ st.markdown("""
         border-color: #ffd700 !important;
     }
 
-    /* Separación de los botones del menú de navegación en la barra lateral */
-    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] > div {
-        margin-bottom: 12px !important; /* Separación vertical holgada */
+    /* Ocultar por completo el círculo de selección de radio nativo de Streamlit */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
+        display: none !important;
     }
-    
-    /* Convertir cada botón de navegación en un botón grande y cómodo para pulsar con el dedo */
+
+    /* Convertir el menú en una lista de botones táctiles premium e independientes */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label {
-        padding: 10px 14px !important; /* Relleno generoso para expandir el área táctil */
-        background-color: #0d0d11 !important; /* Fondo oscuro elegante */
-        border: 1px solid #1e1e2d !important; /* Delicado contorno oscuro */
-        border-radius: 8px !important; /* Esquinas modernas redondeadas */
-        width: 100% !important; /* Que cubra todo el ancho de la barra lateral */
+        padding: 14px 16px !important; /* Padding amplio para hacerlo muy cómodo para el dedo */
+        background: linear-gradient(135deg, #0d0d11 0%, #15151c 100%) !important; /* Fondo sutilmente degradado */
+        border: 1px solid #ffd70033 !important; /* Borde con sutil dorado semi-transparente */
+        border-radius: 12px !important; /* Esquinas redondeadas y modernas */
+        width: 100% !important; /* Ancho completo */
         display: flex !important;
+        justify-content: center !important; /* Centrado del texto */
         align-items: center !important;
         cursor: pointer !important;
         margin: 0 !important;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.35) !important; /* Sombra tridimensional de botón real */
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    /* Separación vertical holgada entre cada botón (más espacio para que no haya toques erróneos) */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] > div {
+        margin-bottom: 16px !important; /* Aumentamos la separación vertical */
     }
     
-    /* Hover/Toque táctil: Brillo dorado e iluminación del borde */
+    /* Efecto al pasar el dedo (Hover/Touch) */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:hover {
-        border-color: #ffd700 !important; /* Resalte dorado */
-        background-color: #14141d !important; /* Brillo de fondo */
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.08) !important; /* Efecto glow sutil */
+        border-color: #ffd700 !important; /* Borde dorado brillante */
+        background: linear-gradient(135deg, #15151c 0%, #20202a 100%) !important;
+        box-shadow: 0 6px 15px rgba(255, 215, 0, 0.15) !important;
+        transform: translateY(-2px) !important; /* Efecto de elevación táctil */
     }
     
-    /* Resaltar el texto de la opción para mayor legibilidad táctil */
+    /* Estilo del texto del botón para máxima legibilidad en celular */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label [data-testid="stMarkdownContainer"] p {
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
+        font-size: 1.05rem !important; /* Texto un poco más grande y claro */
+        font-weight: 700 !important; /* Más grueso, estilo negrita */
         color: #ffffff !important;
+        text-align: center !important; /* Centrar texto */
+        width: 100% !important;
+        letter-spacing: 0.03em !important;
         margin: 0 !important;
     }
     
-    /* Cambiar el punto indicador nativo de Streamlit seleccionado a amarillo dorado */
-    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"]:checked + div {
-        background-color: #ffd700 !important; /* Relleno del círculo de selección */
-        border-color: #ffd700 !important;
-    }
-    
-    /* Al seleccionar una opción, resaltar todo su botón correspondiente de forma sutil */
+    /* Cuando un botón está SELECCIONADO (Activo) */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) {
-        border-color: #10b981 !important; /* Borde verde para indicar pestaña activa */
-        background-color: #081a13 !important; /* Fondo degradado a verde cripto oscuro */
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.06) !important;
+        border-color: #10b981 !important; /* Borde verde brillante activo */
+        background: linear-gradient(135deg, #081a13 0%, #0d3824 100%) !important; /* Degradado verde */
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25) !important; /* Glow verde cripto */
+    }
+
+    /* Cambiar el color del texto cuando el botón está seleccionado */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input[type="radio"]:checked) [data-testid="stMarkdownContainer"] p {
+        color: #10b981 !important; /* Texto verde brillante */
     }
 
     </style>
@@ -2884,13 +2894,14 @@ else:
         pending_withdraws_count = len(get_pending_withdrawals())
         pending_store_count = len(get_pending_store_purchases())
         
-        tab_mint, tab_claims, tab_withdraws, tab_store, tab_referrals, tab_fees, tab_broadcast, tab_settings = st.tabs([
+        tab_mint, tab_claims, tab_withdraws, tab_store, tab_referrals, tab_fees, tab_messenger, tab_broadcast, tab_settings = st.tabs([
             "💸 Emisión de Monedas", 
             f"📥 Comprobantes por Confirmar ({pending_claims_count})", 
             f"💰 Solicitudes de Retiro ({pending_withdraws_count})",
             f"🛍️ Pedidos de Tienda ({pending_store_count})",
             f"👥 Comisiones de Referidos ({pending_rewards_count})",
             "📊 Comisiones de Plataforma",
+            "🚚 Control de Mensajería",
             "📢 Enviar Comunicado",
             "⚙️ Configuración del Token y Nequi"
         ])
